@@ -27,9 +27,14 @@ This is a pretty minimal template, no cookie-cutter or anything. It assumes that
     Unless you want to contribute to this project, you can delete the `.git` folder and initialize a new repository
 
 
-2. Decide on a package name:
-    1. Change the name of the `package_name` folder to your `<new_package_name>`
-    2. Do a repository-wide *search-and-replace* for `package_name` with your `<new_package_name>`.
+2. Rename the package:
+    ```bash
+    $ make rename-package name=my_new_package_name
+    ```
+    If you want to rename it again, you can do so with:
+    ```bash
+    $ make rename-package name=my_new_package_name current_name=my_old_package_name
+    ```
 
 
 3. Build the python environments and install `pre-commit`:
