@@ -21,31 +21,31 @@ This is a pretty minimal template, no cookie-cutter or anything. It assumes that
 ### Install
 
 1. Clone this repository:
-    ```bash
+    ```shell
     $ git clone git@github.com:pymc-labs/project-starter.git
     ```
     Unless you want to contribute to this project, you can delete the `.git` folder and initialize a new repository
 
 
 2. Rename the package:
-    ```bash
+    ```shell
     $ make rename-package name=my_new_package_name
     ```
     If you want to rename it again, you can do so with:
-    ```bash
+    ```shell
     $ make rename-package name=my_new_package_name current_name=my_old_package_name
     ```
 
 
 3. Build the python environments and install `pre-commit`:
-    ```bash
+    ```shell
     $ make install
     ```
     This creates a `.pixi` folder that contains a `envs/default` and `envs/test` virtual environments.
 
 
 4. To validate that everything works, run the tests:
-    ```bash
+    ```shell
     $ make test
     ```
 
