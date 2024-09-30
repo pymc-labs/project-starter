@@ -9,11 +9,11 @@ But it is possible to offset chaos with proper guardrails. These are:
 - **beartype** for runtime type checking. If you know what's going in and out of functions just by reading the code, then it's easier to debug. And if these types are even enforced at runtime with tools like `beartype`, then there's a whole class of bugs that can never enter your code.
 - **pytest** for testing. Meanwhile, with `beartype` handling type checks, tests do not have to assert types, and can merely focus on whether the actual logic works.
 
-## Getting started
+## Usage
 
 This is a pretty minimal template, no cookie-cutter or anything. It assumes that you want all of your logic stored in a package, that you import and use elsewhere. You will then want to put your main model logic in the `package_name/models.py` file, and then have a script for running the model, e.g. in a `scripts/run_model.py` file, or a notebook somewhere (e.g. in `experimentation`).
 
-## Prerequisites
+### Prerequisites
 
 - Python 3.11 or higher
 - Pixi package manager
@@ -37,7 +37,7 @@ This is a pretty minimal template, no cookie-cutter or anything. It assumes that
     make test
     ```
 
-## Philosophy
+### Philosophy
 
 There are some example files in this repository. Have a look at them. Each of the files in `package_name` has a docstring that explains their role in your package. You may not want to follow this dogma entirely, but having split out the code for custom types, main model logic, preprocessing, string parsing, etc. into separate files is always a good idea. Mostly, however, you can use these as an example to build upon.
 
