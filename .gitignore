@@ -1,0 +1,22 @@
+# pixi environments
+.pixi
+*.egg-info
+
+# Environment variables
+.env
+
+# Ignore DS_Store
+.DS_Store
+
+# Ignore compiled Python files
+*.pyc
+
+# Ignore cache directories
+__pycache__/
+
+# Ignore Beartype cache files
+*.opt-beartype*
+
+.vscode/
+.ruff_cache/
+.pytest_cache/
