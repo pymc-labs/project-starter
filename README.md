@@ -24,6 +24,7 @@ This is a pretty minimal template, no cookie-cutter or anything. It assumes that
     ```bash
     git clone git@github.com:pymc-labs/project-starter.git
     ```
+    Unless you want to contribute to this project, you can delete the `.git` folder and initialize a new repository.
 2. Decide on a package name:
     a. Change the name of the `package_name` folder to your `<new_package_name>`
     a. Do a repository-wide *search-and-replace* for `package_name` with your `<new_package_name>`.
