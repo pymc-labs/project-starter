@@ -2,7 +2,7 @@
 
 All projects' codebases go off the rails to some extent. It happens in tiny increments with awkward commits that "solves the problem". This is entirely forgivable when a codebase is not designed for the new problem and there are time constraints. It is inevitable.
 
-But it is possible to offset chaos with proper guardrails. These are:
+However, this chaos can be mitigated with some decent guardrails. This project template provides the following:
 
 - **pixi** for dependency and environment management.
 - **pre-commit** for formatting, spellcheck, etc. If everyone uses the same standard formatting, then PRs won't have flaky formatting updates that distract from the actual contribution. Reviewing code will be much easier.
