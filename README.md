@@ -1,6 +1,6 @@
 # PyMC Labs project starter
 
-All projects' codebases go off the rails to some extent. It happens in tiny increments with awkward commits that "solves the problem". This is entirely forgivable when a codebase is not designed for the new problem and there are time constraints. It is inevitable.
+All project code goes off the rails to some extent. It happens in tiny increments with awkward commits that "solves the problem". This is entirely forgivable when a codebase is not designed for the new problem and there are time constraints. It is inevitable.
 
 However, this chaos can be mitigated with some decent guardrails. This **project template** provides the following:
 
