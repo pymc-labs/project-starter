@@ -2,16 +2,16 @@
 
 All projects' codebases go off the rails to some extent. It happens in tiny increments with awkward commits that "solves the problem". This is entirely forgivable when a codebase is not designed for the new problem and there are time constraints. It is inevitable.
 
-But it is possible to offset chaos with proper guardrails. These are:
+However, this chaos can be mitigated with some decent guardrails. This **project template** provides the following:
 
-- **pixi** for dependency and environment management.
-- **pre-commit** for formatting, spellcheck, etc. If everyone uses the same standard formatting, then PRs won't have flaky formatting updates that distract from the actual contribution. Reviewing code will be much easier.
-- **beartype** for runtime type checking. If you know what's going in and out of functions just by reading the code, then it's easier to debug. And if these types are even enforced at runtime with tools like `beartype`, then there's a whole class of bugs that can never enter your code.
-- **pytest** for testing. Meanwhile, with `beartype` handling type checks, tests do not have to assert types, and can merely focus on whether the actual logic works.
+- **`pixi`** for dependency and environment management.
+- **`pre-commit`** for formatting, spellcheck, etc. If everyone uses the same standard formatting, then PRs won't have flaky formatting updates that distract from the actual contribution. Reviewing code will be much easier.
+- **`beartype`** for runtime type checking. If you know what's going in and out of functions just by reading the code, then it's easier to debug. And if these types are even enforced at runtime with tools like `beartype`, then there's a whole class of bugs that can never enter your code.
+- **`pytest`** for testing. Meanwhile, with `beartype` handling type checks, tests do not have to assert types, and can merely focus on whether the actual logic works.
 
 ## Usage
 
-This is a pretty minimal template, no cookie-cutter or anything. It assumes that you want all of your logic stored in a package, that you import and use elsewhere. You will then want to put your main model logic in the `package_name/models.py` file, and then have a script for running the model, e.g. in a `scripts/run_model.py` file, or a notebook somewhere (e.g. in `experimentation`).
+This is a pretty minimal template, that assumes you have opinions and may want to add/remove stuff too. To use it as intended (not that you have to), you should put your main model logic in the `package_name/models.py` file, adjacent logic split into sibling files, and then have a script that imports from `package_name` and runs the model, e.g. in a `scripts/run_model.py` file, or a notebook somewhere (e.g. in `experimentation`).
 
 ### Prerequisites
 
