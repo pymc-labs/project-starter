@@ -22,7 +22,7 @@ This is a pretty minimal template, no cookie-cutter or anything. It assumes that
 
 1. Clone this repository:
     ```bash
-    git clone git@github.com:pymc-labs/project-starter.git
+    $ git clone git@github.com:pymc-labs/project-starter.git
     ```
     Unless you want to contribute to this project, you can delete the `.git` folder and initialize a new repository.
 
@@ -32,13 +32,13 @@ This is a pretty minimal template, no cookie-cutter or anything. It assumes that
 
 3. Build the python environments and install `pre-commit`:
     ```bash
-    make install
+    $ make install
     ```
     This creates a `.pixi` folder that contains a `envs/default` and `envs/test` virtual environments.
 
 4. To validate that everything works, run the tests:
     ```bash
-    make test
+    $ make test
     ```
 
 ### Philosophy
