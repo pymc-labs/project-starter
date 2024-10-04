@@ -1,12 +1,12 @@
 install:
 	pixi install
-	pixi r pre-commit install
+	pixi run pre-commit install
 
 test:
-	pixi r test
+	pixi run test
 
 python:
-	pixi r python
+	pixi run python
 
 rename-package:
 	@if [ -z "$(name)" ]; then \
