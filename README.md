@@ -1,6 +1,9 @@
 # PyMC Labs project starter
 
-All project code goes off the rails to some extent. It happens in tiny increments with awkward commits that "solves the problem". This is entirely forgivable when a codebase is not designed for the new problem and there are time constraints. It is inevitable.
+All project code goes off the rails to some extent.
+It happens in tiny increments with awkward commits that "solves the problem".
+This is entirely forgivable when a codebase is not designed for the new problem and there are time constraints.
+It is inevitable.
 
 However, this chaos can be mitigated with some decent guardrails. This **project template** provides the following:
 
@@ -11,46 +14,36 @@ However, this chaos can be mitigated with some decent guardrails. This **project
 
 ## Usage
 
-This is a pretty minimal template, that assumes you have opinions and may want to add/remove stuff too. To use it as intended (not that you have to), you should put your main model logic in the `package_name/models.py` file, adjacent logic split into sibling files, and then have a script that imports from `package_name` and runs the model, e.g. in a `scripts/run_model.py` file, or a notebook somewhere (e.g. in `experimentation`).
+This is a pretty minimal template,
+that assumes you have opinions and may want to add/remove stuff too.
+To use it as intended (not that you have to),
+you should put your main model logic in the `package_name/models.py` file,
+adjacent logic split into sibling files,
+and then have a script that imports from `package_name` and runs the model,
+e.g. in a `scripts/run_model.py` file,
+or a notebook somewhere (e.g. in `experimentation`).
 
 ### Prerequisites
 
 - Python 3.11 or higher
-- Pixi package manager
+- [Pixi package manager](https://pixi.sh/latest/)
 
-### Install
+### Get started
 
-1. Clone this repository:
-    ```shell
-    git clone git@github.com:pymc-labs/project-starter.git
-    ```
-    Unless you want to contribute to this project, you can delete the `.git` folder and initialize a new repository
-
-
-2. Rename the package:
-    ```shell
-    make rename-package name=my_new_package_name
-    ```
-    If you want to rename it again, you can do so with:
-    ```shell
-    make rename-package name=my_new_package_name current_name=my_old_package_name
-    ```
-
-
-3. Build the python environments and install `pre-commit`:
-    ```shell
-    make install
-    ```
-    This creates a `.pixi` folder that contains a `envs/default` and `envs/test` virtual environments.
-
-
-4. To validate that everything works, run the tests:
-    ```shell
-    make test
-    ```
+1. On GitHub, click on the big green button that says "Use this template", and create it in a new repository.
+2. Git clone the new repository to your local machine.
+3. Run the setup script: `bash scripts/setup.sh`
+4. Run `pixi install` to install the dependencies.
+5. Run `pixi test` to run the tests.
 
 ### Philosophy
 
-There are some example files in this repository. Have a look at them. Each of the files in `package_name` has a docstring that explains their role in your package. You may not want to follow this dogma entirely, but having split out the code for custom types, main model logic, preprocessing, string parsing, etc. into separate files is always a good idea. Mostly, however, you can use these as an example to build upon.
+There are some example files in this repository.
+Have a look at them.
+Each of the files in `package_name` has a docstring that explains their role in your package.
+You may not want to follow this dogma entirely,
+but having split out the code for custom types, main model logic, preprocessing, string parsing, etc.
+into separate files is always a good idea.
+Mostly, however, you can use these as an example to build upon.
 
 And please contribute. If you add some guardrails that you think would be generally useful, please make a PR.
