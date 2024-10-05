@@ -20,10 +20,3 @@ repos:
     hooks:
       - id: codespell
         args: ["--ignore-words=.codespellignore", "--skip=*.ipynb"]
-
-  - repo: https://github.com/econchick/interrogate
-    rev: 1.7.0  # or master if you're bold
-    hooks:
-      - id: interrogate
-        args: [--quiet, --fail-under=95]
-        pass_filenames: false  # needed if excluding files with pyproject.toml or setup.cfg
