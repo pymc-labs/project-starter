@@ -5,10 +5,6 @@ on: [pull_request]
 
 jobs:
   linting:
-    env:
-      # Configure a constant location for the uv cache
-      UV_CACHE_DIR: /tmp/.uv-cache
-
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,6 +14,7 @@ jobs:
         with:
           pixi-version: v0.25.0
           cache: true
+          # Only write the cache on push to main to avoid exceeding GitHub's 10GB cache limit.
           cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
 
       - name: Set up Python
