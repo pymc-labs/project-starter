@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "Please enter the new package name:"
+echo -e "\033[1mPlease enter the new package name:\033[0m"
 read name
 
 # Validate the package name
@@ -16,7 +16,9 @@ fi
 
 # Rename the package
 current_name="package_name"
-echo "Renaming package from $current_name to $name..."
+echo -e "\n\033[1m== Renaming Package ==\033[0m"
+echo -e "  From: \033[36m$current_name\033[0m"
+echo -e "  To:   \033[36m$name\033[0m\n"
 
 find . -type f -not -path '*/\.*' -exec sh -c '
     if file -b --mime-type "$1" | grep -q "^text/"; then
@@ -26,50 +28,50 @@ find . -type f -not -path '*/\.*' -exec sh -c '
 
 if [ -d "$current_name" ]; then
     mv "$current_name" "$name"
+    echo -e "  \033[32m✔ Directory renamed successfully\033[0m"
 else
-    echo "Warning: Directory '$current_name' not found. Skipping directory rename."
+    echo -e "  \033[33m⚠ Warning: Directory '$current_name' not found. Skipping directory rename.\033[0m"
 fi
 
-echo "Package renamed successfully."
+echo -e "  \033[32m✔ Package renamed successfully.\033[0m"
 
 # Ask if the user wants to run "pixi install"
-echo "Do you want to run 'pixi install'? (y/n)"
-read run_pixi
+echo -e "\n\033[1m== Additional Setup ==\033[0m"
+read -p "Do you want to run 'pixi install'? (y/n): " run_pixi
 
 if [ "$run_pixi" = "y" ] || [ "$run_pixi" = "Y" ]; then
-    echo "Running 'pixi install'..."
+    echo -e "\n  Running 'pixi install'..."
     pixi install
-    echo "'pixi install' completed."
+    echo -e "  \033[32m✔ 'pixi install' completed.\033[0m"
 
     # Ask if the user wants to install pre-commit hooks
-    echo "Do you want to install pre-commit hooks? (y/n)"
-    read install_hooks
+    read -p "Do you want to install pre-commit hooks? (y/n): " install_hooks
 
     if [ "$install_hooks" = "y" ] || [ "$install_hooks" = "Y" ]; then
-        echo "Installing pre-commit hooks..."
+        echo -e "\n  Installing pre-commit hooks..."
         pixi r pre-commit install
-        echo "Pre-commit hooks installed successfully."
+        echo -e "  \033[32m✔ Pre-commit hooks installed successfully.\033[0m"
     fi
 fi
 
-
-
 # Delete existing README.md and rename .README.md
-echo "Updating README files..."
+echo -e "\n\033[1m== Updating README ==\033[0m"
 if [ -f "README.md" ]; then
     rm README.md
-    echo "Existing README.md deleted."
+    echo -e "  \033[32m✔ Existing README.md deleted.\033[0m"
 fi
 
 if [ -f ".README.md" ]; then
     mv .README.md README.md
-    echo ".README.md renamed to README.md."
+    echo -e "  \033[32m✔ .README.md renamed to README.md.\033[0m"
 else
-    echo "Warning: .README.md not found. No changes made to README files."
+    echo -e "  \033[33m⚠ Warning: .README.md not found. No changes made to README files.\033[0m"
 fi
+
+echo -e "\n\033[1m== Setup Complete ==\033[0m"
 
 # Remove this setup script
 script_path=$(realpath "$0")
 rm "$script_path"
 
-echo "Setup script removed."
+echo -e "  \033[32m🚀 Setup script launched into oblivion.\033[0m"
