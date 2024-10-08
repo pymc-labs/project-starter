@@ -100,7 +100,9 @@ if [ "$setup_new_repo" = "y" ] || [ "$setup_new_repo" = "Y" ]; then
         echo -e "  \033[33m⚠ No repository URL provided. Skipping remote setup.\033[0m"
     fi
 else
-    echo -e "  \033[33mℹ Skipped new repository setup. Existing Git configuration (if any) remains unchanged.\033[0m"
+    echo -e "  \033[33mℹ Skipped new repository setup. Existing Git configuration remains unchanged.\033[0m"
+    echo -e "  \033[33m⚠ Warning: Unless you intend to contribute to pymc-labs/project-starter,\033[0m"
+    echo -e "  \033[33m   you should configure a new git repository manually.\033[0m"
 fi
 
 echo -e "\n\033[1m== Setup Complete ==\033[0m"
