@@ -20,9 +20,6 @@ platforms = ["osx-arm64", "linux-64", "osx-64"]
 [tool.pixi.pypi-dependencies]
 package_name = { path = ".", editable = true }
 
-[tool.pixi.tasks]
-test = "pytest"
-
 [tool.pixi.dependencies]
 pandas = "*"
 numpy = "*"
@@ -31,11 +28,11 @@ python-dotenv = "*"
 pre-commit = "*"
 beartype = "*"
 pymc = "*"
-pytest = "*"
 
 [tool.pixi.environments]
-default = { solve-group = "default" }
+default = { features = ["test"], solve-group = "default" }
 test = { features = ["test"], solve-group = "default" }
+minimal = { features = [], solve-group = "default" }
 
 [tool.pixi.feature.test.tasks]
 test = "pytest"
