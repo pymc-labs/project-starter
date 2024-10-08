@@ -54,19 +54,15 @@ if [ "$run_pixi" = "y" ] || [ "$run_pixi" = "Y" ]; then
     fi
 fi
 
-# Delete existing README.md and rename .README.md
+# Delete existing README.md and rename template_README.md
 echo -e "\n\033[1m== Updating README ==\033[0m"
 if [ -f "README.md" ]; then
     rm README.md
     echo -e "  \033[32m✔ Existing README.md deleted.\033[0m"
 fi
 
-if [ -f ".README.md" ]; then
-    mv .README.md README.md
-    echo -e "  \033[32m✔ .README.md renamed to README.md.\033[0m"
-else
-    echo -e "  \033[33m⚠ Warning: .README.md not found. No changes made to README files.\033[0m"
-fi
+mv template_README.md README.md
+echo -e "  \033[32m✔ Created README.md for new project.\033[0m"
 
 echo -e "\n\033[1m== Setup Complete ==\033[0m"
 
