@@ -6,8 +6,6 @@ DEBUG=false
 # Trap to handle cleanup on exit
 trap exit_gracefully SIGINT SIGTERM EXIT
 
-# Flag to track if changes are reversible
-reversible_changes=true
 did_exit=false
 
 execute_command() {
@@ -28,20 +26,6 @@ prompt_input() {
     read -p "  $2: " $3
 }
 
-validate_package_name() {
-    local name="$1"
-    if [[ ! $name =~ ^[a-z][a-z0-9_]*$ ]]; then
-        echo -e "\n\033[1;31mｘ Error: Invalid package name.\033[0m"
-        echo "   · Must start with a letter"
-        echo "   · Can only contain"
-        echo "      · lowercase letters [a-z]"
-        echo "      · numbers [0-9]"
-        echo "      · underscores [_]"
-        echo "   Use for example 'my_package' not 'My Package Name'."
-        exit_gracefully
-    fi
-}
-
 validate_repo_url() {
     local url="$1"
     if [ -z "$url" ]; then
@@ -59,32 +43,12 @@ validate_repo_url() {
 
 exit_gracefully() {
     if [ "$did_exit" = false ]; then
-        if [ "$reversible_changes" = true ]; then
-            echo -e "\n\033[31mAboring Setup:\033[0m"
-            echo -e "  Reverting changes, try again:"
-            execute_command "git reset --hard && git clean -fd"
-        fi
+        echo -e "\n\033[31mAboring Setup:\033[0m"
+        echo -e "  Reverting changes, try again:"
+        execute_command "git reset --hard && git clean -fd"
         did_exit=true
         exit 1
     fi
-}
-
-rename_package() {
-    local new_name="$1"
-    local current_name="$2"
-
-    find . -type f -not -path '*/\.*' -not -name 'setup.sh' -exec sh -c '
-        if file -b --mime-type "$1" | grep -q "^text/"; then
-            sed -i "" "s/$2/$3/g" "$1"
-        fi
-    ' sh {} "$current_name" "$new_name" \;
-
-    if [ -d "$current_name" ]; then
-        mv "$current_name" "$new_name"
-        echo -e "  \033[32m✔ Directory renamed to $new_name\033[0m"
-    fi
-
-    echo -e "  \033[32m✔ Package renamed to $new_name\033[0m"
 }
 
 # ? Setup Mode
@@ -93,39 +57,42 @@ prompt_yes_no "Setup Mode" "Wanna sit back and enjoy the ride (accept all defaul
 if [ "${use_opinionated_setup}" = "y" ]; then
     echo -e "\n  \033[32m✔ Using opinionated setup with recommended options.\033[0m"
 
-    # ? Package Name
-    prompt_input "Package Name" "Please enter the new package name" name
-    validate_package_name "$name"
-
-    # ? GitHub Repository
-    prompt_input "GitHub Repository" "Enter the URL of your new GitHub repository" new_repo_url
-    validate_repo_url "$new_repo_url"
-
     run_pixi="y"
     install_hooks="y"
-    setup_new_repo="y"
     initial_push="y"
     create_readme="y"
+    push_to_repo="y"
 
 else
     echo -e "\n\033[33mℹ You will be prompted for each option during the setup.\033[0m"
 
-    echo -e "\n\033[1m== Package Name ==\033[0m"
-
-    # ? Package Name
-    prompt_input "Package Name" "Please enter the new package name" name
-    validate_package_name "$name"
-
     run_pixi=""
     install_hooks=""
-    setup_new_repo=""
     initial_push=""
     create_readme=""
-    new_repo_url=""
-
+    push_to_repo=""
 fi
 
-rename_package "$name" "package_name"
+# == Package Name ==
+
+echo -e "\n\033[1m== Package Name ==\033[0m"
+
+# ? Package Name
+current_name="package_name"
+name=$(basename "$(pwd)" | tr '-' '_')
+
+find . -type f -not -path '*/\.*' -not -name 'setup.sh' -exec sh -c '
+    if file -b --mime-type "$1" | grep -q "^text/"; then
+        sed -i "" "s/$2/$3/g" "$1"
+    fi
+' sh {} "$current_name" "$name" \;
+
+if [ -d "$current_name" ]; then
+    mv "$current_name" "$name"
+    echo -e "  \033[32m✔ Directory renamed to $name\033[0m"
+fi
+
+echo -e "  \033[32m✔ Package renamed to $name\033[0m"
 
 # == Install Python Environment ==
 
@@ -174,49 +141,21 @@ else
     echo -e "  \033[33mℹ Deleted 'project-starter' README.md.\033[0m"
 fi
 
-# == Connect Git Repository ==
+# == Push to Git Repository ==
 
-echo -e "\n\033[1m== Connect Git Repository ==\033[0m"
-if [ -z "$setup_new_repo" ] && [ -z "$new_repo_url" ]; then
-    echo -e "\n\033[33mℹ If proceeding, please create a new repository on GitHub.\033[0m"
-    echo -e "\033[33m  Then, copy the SSH URL (e.g., git@github.com:<user>/<repo>.git).\033[0m"
-    echo -e "\033[33m  You'll need this URL in the next step.\033[0m"
-    prompt_yes_no "New Repository" "Do you want to connect a new remote repository?" setup_new_repo
+echo -e "\n\033[1m== Push to Git Repository ==\033[0m"
+if [ -z "$push_to_repo" ]; then
+    prompt_yes_no "Push to GitHub" "Do you want to push the initialized project to GitHub?" push_to_repo
 fi
 
-if [ "${setup_new_repo}" = "y" ] && [ -z "$new_repo_url" ]; then
-    prompt_input "GitHub Repository" "Enter the URL of your new GitHub repository" new_repo_url
-    validate_repo_url "$new_repo_url"
-fi
+if [ "${push_to_repo}" = "y" ]; then
 
-if [ "${setup_new_repo}" = "y" ]; then
-    execute_command "rm -rf .git"
-    reversible_changes=false
-    echo -e "  \033[32m✔ Existing .git folder removed.\033[0m"
-
-    execute_command "git init > /dev/null 2>&1"
-    echo -e "  \033[32m✔ New git repository initialized.\033[0m"
-
-    execute_command "git remote add origin \"$new_repo_url\""
-    echo -e "  \033[32m✔ New remote origin added: $new_repo_url\033[0m"
-
-    if [ -z "$initial_push" ]; then
-        prompt_yes_no "Initial Commit" "Do you want to push an initial commit?" initial_push
-    fi
-
-    if [ "${initial_push}" = "y" ]; then
-        execute_command "git add . ':!setup.sh'"
-        execute_command "git commit -m \"Initial commit\""
-        execute_command "git branch -M main"
-        execute_command "git push -u origin main"
-        echo -e "  \033[32m✔ Initial commit pushed to the new repository.\033[0m"
-    else
-        echo -e "  \033[33mℹ Skipped initial commit and push. You can do this manually later.\033[0m"
-    fi
+    execute_command "git add . ':!setup.sh'"
+    execute_command "git commit -m \"Initial commit\""
+    execute_command "git push"
+    echo -e "  \033[32m✔ Initial commit pushed to GitHub.\033[0m"
 else
-    echo -e "  \033[33mℹ Skipped new repository setup. Existing Git configuration remains unchanged.\033[0m"
-    echo -e "  \033[33m⚠ Warning: Unless you intend to contribute to pymc-labs/project-starter,\033[0m"
-    echo -e "  \033[33m   you should now configure a new git repository manually.\033[0m"
+    echo -e "  \033[33mℹ Skipped initial commit and push. You can do this manually later.\033[0m"
 fi
 
 # == Clean Up ==
@@ -227,15 +166,8 @@ script_path=$(realpath "$0")
 execute_command "rm \"$script_path\""
 echo -e "  \033[32m🗑️ Setup script has been deleted.\033[0m"
 
-if [ "$reversible_changes" = true ]; then
-    echo -e "\n  \033[33mNote: To undo this entire setup, you can run:\033[0m"
-    echo -e "  \033[36m  git reset --hard && git clean -fd\033[0m"
-else
-    echo -e "  \033[33mNote: Your project is now set up with a new Git repository.\033[0m"
-    echo -e "  \033[33mIf you want to start over, you need to start over completely.\033[0m"
-    echo -e "  \033[33mDelete the repository both locally and on GitHub,\033[0m"
-    echo -e "  \033[33mand clone the project-starter repository again.\033[0m"
-fi
 
 # Final message
 echo -e "\n\033[1m🎉 == Setup Complete! == 🎉\033[0m"
+echo -e "\n  \033[33mNote: To undo and start over, simply run:\033[0m"
+echo -e "  \033[36m  git reset --hard && git clean -fd\033[0m"
