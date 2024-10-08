@@ -57,8 +57,8 @@ validate_repo_url() {
 }
 
 exit_gracefully() {
-    echo -e "\n\033[31mAboring Setup:\033[0m"
     if [ "$reversible_changes" = true ]; then
+        echo -e "\n\033[31mAboring Setup:\033[0m"
         echo -e "  Reverting changes, try again:"
         execute_command "git reset --hard && git clean -fd"
     fi
