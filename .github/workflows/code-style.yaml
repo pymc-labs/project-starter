@@ -8,16 +8,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Pixi Environment
-        uses: prefix-dev/setup-pixi@v0.8.1
-        with:
-          pixi-version: v0.25.0
-          cache: true
-          # Only write the cache on push to main to avoid exceeding GitHub's 10GB cache limit.
-          cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
-
-      - name: Set up Python
-        run: pixi global install python
-
+      - uses: actions/setup-python@v5
       - uses: pre-commit/action@v3.0.1
