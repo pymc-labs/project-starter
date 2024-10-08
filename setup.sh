@@ -105,7 +105,7 @@ if [ "${use_opinionated_setup}" = "y" ]; then
     initial_push="y"
     create_readme="y"
 
-    echo -e "\n\033[32m✔ Using opinionated setup with recommended options.\033[0m"
+    echo -e "\n  \033[32m✔ Using opinionated setup with recommended options.\n\033[0m"
 else
     run_pixi=""
     install_hooks=""
@@ -116,6 +116,7 @@ else
     echo -e "\n\033[33mℹ You will be prompted for each option during the setup.\033[0m"
 fi
 
+echo -e "\n\033[1m== Rename Package ==\033[0m"
 rename_package "$name" "package_name"
 
 # == Install Python Environment ==
@@ -191,7 +192,10 @@ if [ "${setup_new_repo}" = "y" ]; then
     execute_command "git remote add origin \"$new_repo_url\""
     echo -e "  \033[32m✔ New remote origin added: $new_repo_url\033[0m"
 
-    prompt_yes_no "Initial Commit" "Do you want to push an initial commit?" initial_push
+    if [ -z "$initial_push" ]; then
+        prompt_yes_no "Initial Commit" "Do you want to push an initial commit?" initial_push
+    fi
+
     if [ "${initial_push}" = "y" ]; then
         execute_command "git add . ':!setup.sh'"
         execute_command "git commit -m \"Initial commit\""
@@ -220,8 +224,9 @@ if [ "$reversible_changes" = true ]; then
     echo -e "  \033[36m  git reset --hard && git clean -fd\033[0m"
 else
     echo -e "  \033[33mNote: Your project is now set up with a new Git repository.\033[0m"
-    echo -e "  \033[33mIf you need to start over, you need to delete the repository\033[0m"
-    echo -e "  \033[33mboth locally and on GitHub, and clone the project-starter repository again.\033[0m"
+    echo -e "  \033[33mIf you want to start over, you need to start over completely.\033[0m"
+    echo -e "  \033[33mDelete the repository both locally and on GitHub,\033[0m"
+    echo -e "  \033[33mand clone the project-starter repository again.\033[0m"
 fi
 
 # Final message
