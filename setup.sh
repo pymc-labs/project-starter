@@ -50,8 +50,8 @@ validate_repo_url() {
     else
         # Regex test for the URL pattern
         if ! [[ $url =~ ^git@github\.com:[A-Za-z0-9_-]+/[A-Za-z0-9_-]+\.git$ ]]; then
-            echo -e "  \033[1;31mｘ Error: Invalid repository URL format.\033[0m"
-            echo -e "  \033[33mℹ The URL should match the pattern: git@github.com:<user>/<repo>.git\033[0m"
+            echo -e "\n\033[1;31mｘ Error: Invalid repository URL format.\033[0m"
+            echo -e "  · Argument must be a valid SSH URL of the form 'git@github.com:<user>/<repo>.git'"
             exit_gracefully
         fi
     fi
@@ -90,15 +90,13 @@ rename_package() {
 # ? Setup Mode
 prompt_yes_no "Setup Mode" "Wanna sit back and enjoy the ride (accept all defaults)?" use_opinionated_setup
 
-# == Package Details ==
-
-echo -e "\n\033[1m== Package Details ==\033[0m"
-
-# ? Package Name
-prompt_input "Package Name" "Please enter the new package name" name
-validate_package_name "$name"
-
 if [ "${use_opinionated_setup}" = "y" ]; then
+    echo -e "\n  \033[32m✔ Using opinionated setup with recommended options.\033[0m"
+
+    # ? Package Name
+    prompt_input "Package Name" "Please enter the new package name" name
+    validate_package_name "$name"
+
     # ? GitHub Repository
     prompt_input "GitHub Repository" "Enter the URL of your new GitHub repository" new_repo_url
     validate_repo_url "$new_repo_url"
@@ -109,18 +107,24 @@ if [ "${use_opinionated_setup}" = "y" ]; then
     initial_push="y"
     create_readme="y"
 
-    echo -e "\n  \033[32m✔ Using opinionated setup with recommended options.\n\033[0m"
 else
+    echo -e "\n\033[33mℹ You will be prompted for each option during the setup.\033[0m"
+
+    echo -e "\n\033[1m== Package Name ==\033[0m"
+
+    # ? Package Name
+    prompt_input "Package Name" "Please enter the new package name" name
+    validate_package_name "$name"
+
     run_pixi=""
     install_hooks=""
     setup_new_repo=""
     initial_push=""
     create_readme=""
     new_repo_url=""
-    echo -e "\n\033[33mℹ You will be prompted for each option during the setup.\033[0m"
+
 fi
 
-echo -e "\n\033[1m== Rename Package ==\033[0m"
 rename_package "$name" "package_name"
 
 # == Install Python Environment ==
