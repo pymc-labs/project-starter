@@ -20,4 +20,4 @@ jobs:
       - name: Set up Python
         run: pixi global install python
 
-      - uses: pre-commit/action@v2.0.0
+      - uses: pre-commit/action@v3.0.1
