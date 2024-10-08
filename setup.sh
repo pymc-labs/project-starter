@@ -3,12 +3,18 @@
 echo "Please enter the new package name:"
 read name
 
+# Validate the package name
+if [[ ! $name =~ ^[a-zA-Z][a-zA-Z0-9_-]*$ ]]; then
+    echo "Error: Invalid package name. It must start with a letter and can only contain letters, numbers, hyphens, and underscores."
+    exit 1
+fi
+
 if [ -z "$name" ]; then
     echo "Error: Package name cannot be empty."
     exit 1
 fi
 
-current_name="stuff"
+current_name="package_name"
 
 echo "Renaming package from $current_name to $name..."
 
@@ -25,6 +31,16 @@ else
 fi
 
 echo "Package renamed successfully."
+
+# Ask if the user wants to run "pixi install"
+echo "Do you want to run 'pixi install'? (y/n)"
+read run_pixi
+
+if [ "$run_pixi" = "y" ] || [ "$run_pixi" = "Y" ]; then
+    echo "Running 'pixi install'..."
+    pixi install
+    echo "'pixi install' completed."
+fi
 
 # Remove this setup script
 script_path=$(realpath "$0")
