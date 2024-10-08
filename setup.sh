@@ -193,7 +193,7 @@ if [ "${setup_new_repo}" = "y" ]; then
 
     prompt_yes_no "Initial Commit" "Do you want to push an initial commit?" initial_push
     if [ "${initial_push}" = "y" ]; then
-        execute_command "git add ."
+        execute_command "git add . ':!setup.sh'"
         execute_command "git commit -m \"Initial commit\""
         execute_command "git branch -M main"
         execute_command "git push -u origin main"
