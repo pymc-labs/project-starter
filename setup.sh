@@ -3,6 +3,12 @@
 # Debug flag
 DEBUG=false
 
+# Trap to handle cleanup on exit
+trap exit_gracefully SIGINT SIGTERM EXIT
+
+# Flag to track if changes are reversible
+reversible_changes=true
+
 execute_command() {
     echo -e "  \033[36m$ $1\033[0m"
     if [ "$DEBUG" = false ]; then
@@ -52,8 +58,10 @@ validate_repo_url() {
 
 exit_gracefully() {
     echo -e "\n\033[31mAboring Setup:\033[0m"
-    echo -e "  Reverting changes, try again:"
-    execute_command "git reset --hard && git clean -fd"
+    if [ "$reversible_changes" = true ]; then
+        echo -e "  Reverting changes, try again:"
+        execute_command "git reset --hard && git clean -fd"
+    fi
     exit 1
 }
 
@@ -174,6 +182,7 @@ fi
 
 if [ "${setup_new_repo}" = "y" ]; then
     execute_command "rm -rf .git"
+    reversible_changes=false
     echo -e "  \033[32m✔ Existing .git folder removed.\033[0m"
 
     execute_command "git init > /dev/null 2>&1"
@@ -206,7 +215,7 @@ script_path=$(realpath "$0")
 execute_command "rm \"$script_path\""
 echo -e "  \033[32m🗑️ Setup script has been deleted.\033[0m"
 
-if [ "$setup_new_repo" != "y" ] && [ "$setup_new_repo" != "Y" ]; then
+if [ "$reversible_changes" = true ]; then
     echo -e "\n  \033[33mNote: To undo this entire setup, you can run:\033[0m"
     echo -e "  \033[36m  git reset --hard && git clean -fd\033[0m"
 else
