@@ -43,9 +43,10 @@ validate_repo_url() {
 
 exit_gracefully() {
     if [ "$did_exit" = false ]; then
-        echo -e "\n\033[31mAboring Setup:\033[0m"
-        echo -e "  Reverting changes, try again:"
-        execute_command "git reset --hard && git clean -fd"
+        echo -e "\n\033[31mAborting Setup:\033[0m"
+        echo -e "  Reverting changes to initial commit:"
+        execute_command "git reset --hard $(git rev-list --max-parents=0 HEAD)"
+        execute_command "git clean -fd"
         did_exit=true
         exit 1
     fi
