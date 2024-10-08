@@ -11,6 +11,7 @@ However, this chaos can be mitigated with some decent guardrails. This **project
 - **`pre-commit`** for formatting, spellcheck, etc. If everyone uses the same standard formatting, then PRs won't have flaky formatting updates that distract from the actual contribution. Reviewing code will be much easier.
 - **`beartype`** for runtime type checking. If you know what's going in and out of functions just by reading the code, then it's easier to debug. And if these types are even enforced at runtime with tools like `beartype`, then there's a whole class of bugs that can never enter your code.
 - **`pytest`** for testing. Meanwhile, with `beartype` handling type checks, tests do not have to assert types, and can merely focus on whether the actual logic works.
+- **Github Actions** for running the pre-commit checks on each PR, automated testing and dependency management (dependabot).
 
 ## Usage
 
