@@ -8,6 +8,7 @@ trap exit_gracefully SIGINT SIGTERM EXIT
 
 # Flag to track if changes are reversible
 reversible_changes=true
+did_exit=false
 
 execute_command() {
     echo -e "  \033[36m$ $1\033[0m"
@@ -57,12 +58,15 @@ validate_repo_url() {
 }
 
 exit_gracefully() {
-    if [ "$reversible_changes" = true ]; then
-        echo -e "\n\033[31mAboring Setup:\033[0m"
-        echo -e "  Reverting changes, try again:"
-        execute_command "git reset --hard && git clean -fd"
+    if [ "$did_exit" = false ]; then
+        if [ "$reversible_changes" = true ]; then
+            echo -e "\n\033[31mAboring Setup:\033[0m"
+            echo -e "  Reverting changes, try again:"
+            execute_command "git reset --hard && git clean -fd"
+        fi
+        did_exit=true
+        exit 1
     fi
-    exit 1
 }
 
 rename_package() {
