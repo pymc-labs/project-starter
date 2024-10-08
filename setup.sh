@@ -36,7 +36,7 @@ fi
 echo -e "  \033[32m✔ Package renamed successfully.\033[0m"
 
 # Ask if the user wants to run "pixi install"
-echo -e "\n\033[1m== Additional Setup ==\033[0m"
+echo -e "\n\033[1m== Creating Python Environment ==\033[0m"
 read -p "Do you want to run 'pixi install'? (y/n): " run_pixi
 
 if [ "$run_pixi" = "y" ] || [ "$run_pixi" = "Y" ]; then
@@ -63,6 +63,45 @@ fi
 
 mv template_README.md README.md
 echo -e "  \033[32m✔ Created README.md for new project.\033[0m"
+
+echo -e "\n\033[1m== Git Repository Setup ==\033[0m"
+read -p "Do you want to connect a new remote repository? (y/n): " setup_new_repo
+
+if [ "$setup_new_repo" = "y" ] || [ "$setup_new_repo" = "Y" ]; then
+    # Remove existing .git folder
+    if [ -d ".git" ]; then
+        rm -rf .git
+        echo -e "  \033[32m✔ Existing .git folder removed.\033[0m"
+    fi
+
+    # Initialize new git repository
+    git init
+    echo -e "  \033[32m✔ New git repository initialized.\033[0m"
+
+    # Ask for new remote origin URL
+    read -p "Enter the URL of your new GitHub repository (e.g. $(tput setaf 6)git@github.com:pymc-devs/new-project.git$(tput sgr0)): " new_repo_url
+
+    if [ -n "$new_repo_url" ]; then
+        git remote add origin "$new_repo_url"
+        echo -e "  \033[32m✔ New remote origin added: $new_repo_url\033[0m"
+
+        # Optional: Initial commit and push
+        read -p "Do you want to make an initial commit and push? (y/n): " initial_push
+        if [ "$initial_push" = "y" ] || [ "$initial_push" = "Y" ]; then
+            git add .
+            git commit -m "Initial commit"
+            git branch -M main
+            git push -u origin main
+            echo -e "  \033[32m✔ Initial commit pushed to the new repository.\033[0m"
+        else
+            echo -e "  \033[33mℹ Skipped initial commit and push. You can do this manually later.\033[0m"
+        fi
+    else
+        echo -e "  \033[33m⚠ No repository URL provided. Skipping remote setup.\033[0m"
+    fi
+else
+    echo -e "  \033[33mℹ Skipped new repository setup. Existing Git configuration (if any) remains unchanged.\033[0m"
+fi
 
 echo -e "\n\033[1m== Setup Complete ==\033[0m"
 
