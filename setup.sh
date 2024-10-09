@@ -17,8 +17,8 @@ prompt_yes_no() {
     while true; do
         if ! read -r -p "  $2 [Y/n]: " response; then
             # Handle EOF (Ctrl+D)
-            echo  # Print a newline for better formatting
-            exit 1  # Return with a non-zero status to indicate cancellation
+            echo
+            exit 1
         fi
         case $response in
             [Yy]* | '') eval "$3='y'"; return 0 ;;
