@@ -1,4 +1,4 @@
-# 🚀 PyMC Labs project starter
+# 🚀 PyMC Labs Project Starter
 
 All project code goes off the rails to some extent.
 It happens in tiny increments with awkward commits that "solves the problem".
