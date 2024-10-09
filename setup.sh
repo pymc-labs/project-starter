@@ -139,8 +139,9 @@ prompt_yes_no "Commit and Push" "Do you want to commit and push these changes?" 
 
 if [ "${commit_and_push}" = "y" ]; then
     echo -e "\n\033[1m== Committing and Pushing Changes ==\033[0m"
-    execute_command "git add . ':!setup.sh'"
+    execute_command "git add ."
     execute_command "git commit -m 'Initial setup with project-starter'"
+    execute_command "git pull"
     execute_command "git push origin main"
     echo -e "  \033[32m✔ Changes committed and pushed successfully.\033[0m"
 else
