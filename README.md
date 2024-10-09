@@ -33,9 +33,7 @@ or a notebook somewhere (e.g. in `experimentation`).
 
 1. On GitHub, click on the big green button that says "Use this template", and create it in a new repository.
 2. Git clone the new repository to your local machine.
-3. Run the setup script: `bash scripts/setup.sh`
-4. Run `pixi install` to install the dependencies.
-5. Run `pixi test` to run the tests.
+3. Run the setup script `bash scripts/setup.sh` and follow the instructions.
 
 ### Philosophy
 
