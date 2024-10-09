@@ -56,7 +56,7 @@ exit_gracefully() {
 prompt_yes_no "Setup Mode" "Wanna sit back and enjoy the ride (accept all defaults)?" use_opinionated_setup
 
 if [ "${use_opinionated_setup}" = "y" ]; then
-    echo -e "\n  \033[32m✔ Using opinionated setup with recommended options.\033[0m"
+    echo -e "  \033[32m✔ Using opinionated setup with recommended options.\033[0m"
 
     run_pixi="y"
     install_hooks="y"
