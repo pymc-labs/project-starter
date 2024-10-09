@@ -31,7 +31,7 @@ or a notebook somewhere (e.g. in `experimentation`).
 
 ### Get started
 
-1. On GitHub, click on the big green button that says "Use this template", and create it in a new repository.
+1. On GitHub, click on the <span style="background-color: #2ea44f; color: white; padding: 6px 12px; border-radius: 6px; font-weight: bold;">Use this template</span> button, and create a new repository.
 2. Git clone the new repository to your local machine.
 3. Run the setup script `bash scripts/setup.sh` and follow the instructions.
 
