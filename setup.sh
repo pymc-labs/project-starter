@@ -26,9 +26,18 @@ prompt_input() {
 exit_gracefully() {
     if [ "$revert_on_exit" = true ]; then
         echo -e "\n\033[31mAborting Setup:\033[0m"
+
+        # Revert to initial commit
         echo -e "  Reverting changes to initial commit:"
         execute_command "git reset --hard $(git rev-list --max-parents=0 HEAD)"
         execute_command "git clean -fd"
+
+        # Remove .pixi directory if it exists
+        if [ -d ".pixi" ]; then
+            echo -e "  Removing .pixi directory:"
+            execute_command "rm -rf .pixi"
+        fi
+
         revert_on_exit=false
         exit 1
     fi
