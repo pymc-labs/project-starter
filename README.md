@@ -31,7 +31,7 @@ or a notebook somewhere (e.g. in `experimentation`).
 
 ### Get started
 
-1. On GitHub, click on the green <a class="dropdown-item" href="/new?template_name=project-starter&amp;template_owner=pymc-labs">**Use this template**</a> button, and create a new repository.
+1. On GitHub, click on the green **Use this template** button, and create a new repository.
 2. Git clone the new repository to your local machine.
 3. Run the setup script `bash scripts/setup.sh` and follow the instructions.
 
