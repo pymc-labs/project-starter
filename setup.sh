@@ -2,7 +2,7 @@
 
 # Trap to handle cleanup on exit
 trap exit_gracefully SIGINT SIGTERM EXIT
-did_exit=false
+revert_on_exit=true
 
 # Functions -------------------------------------------------------------------
 # -----------------------------------------------------------------------------
@@ -24,12 +24,12 @@ prompt_input() {
 }
 
 exit_gracefully() {
-    if [ "$did_exit" = false ]; then
+    if [ "$revert_on_exit" = true ]; then
         echo -e "\n\033[31mAborting Setup:\033[0m"
         echo -e "  Reverting changes to initial commit:"
         execute_command "git reset --hard $(git rev-list --max-parents=0 HEAD)"
         execute_command "git clean -fd"
-        did_exit=true
+        revert_on_exit=false
         exit 1
     fi
 }
@@ -132,4 +132,17 @@ echo -e "\n\033[1m🎉 == Setup Complete! == 🎉\033[0m"
 echo -e "\n  \033[33mNote: To undo and start over, simply run:\033[0m"
 echo -e "  \033[36m  git reset --hard && git clean -fd\033[0m"
 
-did_exit=true
+revert_on_exit=false
+
+# Ask about committing and pushing
+prompt_yes_no "Commit and Push" "Do you want to commit and push these changes?" commit_and_push
+
+if [ "${commit_and_push}" = "y" ]; then
+    echo -e "\n\033[1m== Committing and Pushing Changes ==\033[0m"
+    execute_command "git add . ':!setup.sh'"
+    execute_command "git commit -m 'Initial setup with project-starter'"
+    execute_command "git push origin main"
+    echo -e "  \033[32m✔ Changes committed and pushed successfully.\033[0m"
+else
+    echo -e "\n\033[33mℹ Changes have not been committed or pushed.\033[0m"
+fi
