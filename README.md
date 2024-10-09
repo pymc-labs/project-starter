@@ -35,6 +35,8 @@ or a notebook somewhere (e.g. in `experimentation`).
 2. Git clone the new repository to your local machine.
 3. Run the setup script `bash scripts/setup.sh` and follow the instructions.
 
+<video src="https://github.com/user-attachments/assets/4a1ab682-bdc6-4ac9-90ad-013157c1128d" controls></video>
+
 ### Philosophy
 
 There are some example files in this repository.
