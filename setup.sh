@@ -1,18 +1,15 @@
 #!/bin/bash
 
-# Debug flag
-DEBUG=false
-
 # Trap to handle cleanup on exit
 trap exit_gracefully SIGINT SIGTERM EXIT
-
 did_exit=false
+
+# Functions -------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 execute_command() {
     echo -e "  \033[36m$ $1\033[0m"
-    if [ "$DEBUG" = false ]; then
-        eval "$1"
-    fi
+    eval "$1"
 }
 
 prompt_yes_no() {
@@ -24,21 +21,6 @@ prompt_yes_no() {
 prompt_input() {
     echo -e "\n\033[1;34m? $1\033[0m"
     read -p "  $2: " $3
-}
-
-validate_repo_url() {
-    local url="$1"
-    if [ -z "$url" ]; then
-        echo -e "  \033[33m⚠ No repository URL provided. Skipping remote setup.\033[0m"
-        setup_new_repo="n"
-    else
-        # Regex test for the URL pattern
-        if ! [[ $url =~ ^git@github\.com:[A-Za-z0-9_-]+/[A-Za-z0-9_-]+\.git$ ]]; then
-            echo -e "\n\033[1;31mｘ Error: Invalid repository URL format.\033[0m"
-            echo -e "  · Argument must be a valid SSH URL of the form 'git@github.com:<user>/<repo>.git'"
-            exit_gracefully
-        fi
-    fi
 }
 
 exit_gracefully() {
@@ -56,22 +38,17 @@ exit_gracefully() {
 prompt_yes_no "Setup Mode" "Wanna sit back and enjoy the ride (accept all defaults)?" use_opinionated_setup
 
 if [ "${use_opinionated_setup}" = "y" ]; then
-    echo -e "  \033[32m✔ Using opinionated setup with recommended options.\033[0m"
+    echo -e "\n  \033[32m✔ Using opinionated setup with recommended options.\033[0m"
 
     run_pixi="y"
     install_hooks="y"
-    initial_push="y"
     create_readme="y"
-    push_to_repo="y"
-
 else
     echo -e "\n\033[33mℹ You will be prompted for each option during the setup.\033[0m"
 
     run_pixi=""
     install_hooks=""
-    initial_push=""
     create_readme=""
-    push_to_repo=""
 fi
 
 # == Package Name ==
@@ -142,23 +119,6 @@ else
     echo -e "  \033[33mℹ Deleted 'project-starter' README.md.\033[0m"
 fi
 
-# == Push to Git Repository ==
-
-echo -e "\n\033[1m== Push to Git Repository ==\033[0m"
-if [ -z "$push_to_repo" ]; then
-    prompt_yes_no "Push to GitHub" "Do you want to push the initialized project to GitHub?" push_to_repo
-fi
-
-if [ "${push_to_repo}" = "y" ]; then
-
-    execute_command "git add . ':!setup.sh'"
-    execute_command "git commit -m \"Initial commit\""
-    execute_command "git push"
-    echo -e "  \033[32m✔ Initial commit pushed to GitHub.\033[0m"
-else
-    echo -e "  \033[33mℹ Skipped initial commit and push. You can do this manually later.\033[0m"
-fi
-
 # == Clean Up ==
 
 echo -e "\n\033[1m== Clean Up ==\033[0m"
@@ -167,8 +127,9 @@ script_path=$(realpath "$0")
 execute_command "rm \"$script_path\""
 echo -e "  \033[32m🗑️ Setup script has been deleted.\033[0m"
 
-
 # Final message
 echo -e "\n\033[1m🎉 == Setup Complete! == 🎉\033[0m"
 echo -e "\n  \033[33mNote: To undo and start over, simply run:\033[0m"
 echo -e "  \033[36m  git reset --hard && git clean -fd\033[0m"
+
+did_exit=true
