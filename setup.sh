@@ -130,7 +130,7 @@ echo -e "  \033[32m🗑️ Setup script has been deleted.\033[0m"
 # Final message
 echo -e "\n\033[1m🎉 == Setup Complete! == 🎉\033[0m"
 echo -e "\n  \033[33mNote: To undo and start over, simply run:\033[0m"
-echo -e "  \033[36m  git reset --hard && git clean -fd\033[0m"
+echo -e "  \033[36m  git reset --hard $(git rev-list --max-parents=0 HEAD) && git clean -fd\033[0m"
 
 revert_on_exit=false
 
