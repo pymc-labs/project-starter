@@ -14,13 +14,18 @@ execute_command() {
 
 prompt_yes_no() {
     echo -e "\n\033[1;34m? $1\033[0m"
-    read -p "  $2 [Y/n]: " $3
-    eval "$3=\${$3:-y}" # Set default to 'y' if input is empty
-}
-
-prompt_input() {
-    echo -e "\n\033[1;34m? $1\033[0m"
-    read -p "  $2: " $3
+    while true; do
+        if ! read -r -p "  $2 [Y/n]: " response; then
+            # Handle EOF (Ctrl+D)
+            echo  # Print a newline for better formatting
+            exit 1  # Return with a non-zero status to indicate cancellation
+        fi
+        case $response in
+            [Yy]* | '') eval "$3='y'"; return 0 ;;
+            [Nn]*) eval "$3='n'"; return 0 ;;
+            *) echo "  Please answer yes (y) or no (n)." ;;
+        esac
+    done
 }
 
 exit_gracefully() {
