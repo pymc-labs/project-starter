@@ -17,7 +17,7 @@ prompt_yes_no() {
     while true; do
         if ! read -r -p "  $2 [Y/n]: " response; then
             # Handle EOF (Ctrl+D)
-            echo
+            echo -e ""
             exit 1
         fi
         case $response in
