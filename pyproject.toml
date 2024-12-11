@@ -1,5 +1,5 @@
 [project]
-authors = [{name = "pymc-devs", email = "info@pymc-labs.com"}]
+authors = [{name = "pymc-labs", email = "info@pymc-labs.com"}]
 dependencies = []
 description = "Add a short description here"
 name = "package_name"
