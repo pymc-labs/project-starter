@@ -75,7 +75,13 @@ name=$(basename "$(pwd)" | tr '-' '_')
 
 find . -type f -not -path '*/\.*' -not -name 'setup.sh' -exec sh -c '
     if file -b --mime-type "$1" | grep -q "^text/"; then
-        sed -i "" "s/$2/$3/g" "$1"
+        if [ "$(uname)" = "Darwin" ]; then
+            # macOS (BSD sed)
+            sed -i "" "s/$2/$3/g" "$1"
+        else
+            # Linux (GNU sed)
+            sed -i "s/$2/$3/g" "$1"
+        fi
     fi
 ' sh {} "$current_name" "$name" \;
 
