@@ -1,8 +1,8 @@
 """
 Various utility functions, for use outside of the `package_name` module.
 
-Do not add any functions here that gets imported into the `synthetic_consumers` module.
-If you need to add logic that gets imported into the `synthetic_consumers` module,
+Do not add any functions here that gets imported into the `package_name` module.
+If you need to add logic that gets imported into the `package_name` module,
 add it to another file in this directory where it logically belongs. If none such file
 exists, create a new file in this directory.
 
