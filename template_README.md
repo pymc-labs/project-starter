@@ -14,7 +14,7 @@
 
 - `package_name/`: Contains the package logic
 - `tests/`: Contains tests for the package
-- `exploration/`: Contains exploratory code for testing new features
+- `notebooks/`: Contains exploratory code for testing new features
 
 ## Development
 
