@@ -24,6 +24,7 @@ package_name = { path = ".", editable = true }
 pandas = "*"
 numpy = "*"
 ruff = "*"
+ipykernel = "*"
 python-dotenv = "*"
 pre-commit = "*"
 beartype = "*"
