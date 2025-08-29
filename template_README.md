@@ -35,3 +35,4 @@ This package has been created with [pymc-labs/project-starter](https://github.co
 
 1. Run `pixi install` to install the dependencies.
 2. Run `pixi r test` to run the tests.
+3. Run `pre-commit install` to set up pre-commit hooks.
