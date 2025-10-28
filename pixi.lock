@@ -6480,7 +6480,7 @@ packages:
 - pypi: ./
   name: package-name
   version: 0.1.0
-  sha256: f80c6bfe428508e744a785654bdcdaddb17d6566d7bb2d434c572b608806dd9f
+  sha256: fdda64aea757044e994907b74ecf752b2b0207b7bb4a24e67c4f06ee58e20a82
   requires_dist:
   - pytest ; extra == 'test'
   requires_python: '>=3.11'
