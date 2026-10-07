@@ -12,6 +12,7 @@ However, this chaos can be mitigated with some decent guardrails. This **project
 - 🏷️ **`beartype`** for runtime type checking. If you know what's going in and out of functions just by reading the code, then it's easier to debug. And if these types are even enforced at runtime with tools like `beartype`, then there's a whole class of bugs that can never enter your code.
 - 🧪 **`pytest`** for testing. Meanwhile, with `beartype` handling type checks, tests do not have to assert types, and can merely focus on whether the actual logic works.
 - 🔄 **Github Actions** for running the pre-commit checks on each PR, automated testing and dependency management (dependabot).
+- 🧠 **Persistent agent context** for shared workflow rules and continuity between agent sessions, included by default and optional during guided setup.
 
 ## Usage
 
@@ -36,6 +37,26 @@ or a notebook somewhere (e.g. in `experimentation`).
 3. Run the setup script `bash setup.sh` and follow the instructions.
 
 <video src="https://github.com/user-attachments/assets/4a1ab682-bdc6-4ac9-90ad-013157c1128d" controls></video>
+
+### Persistent agent context
+
+The starter includes a small, agent-maintained context structure. The recommended setup keeps it; choose guided setup to opt out. Opting out removes the context scaffold and its section from the generated README.
+
+```text
+AGENTS.md                  Agent entry point and task guidance
+AGENTS/
+  CONVENTION/              Durable workflow and data science rules
+  REFERENCE/               Current implementation descriptions (purpose note only)
+  CHANGELOG.md             Useful changes and validation
+  QUIRKS.md                Current debugging traps
+  DEFERRED.md              Concrete unfinished work
+  AGENT_MISTAKES.md         Lessons and verified fixes
+.agents/skills/.gitkeep     Empty home for future project skills
+```
+
+[AGENTS.md](AGENTS.md) tells agents which context to read and when to update it. Conventions cover the environment, code, scripts and experiments, data integrity, modeling, testing, and Git workflow. References describe what the code currently does; they do not turn bugs into requirements.
+
+The session files contain instructions and entry formats, with no inherited project history. After initialization, replace the project description in `AGENTS.md` and let the context grow from actual work. Keep new conventions broadly useful, add implementation references only when needed, and keep resolved quirks and deferred tasks up to date. No skills are bundled.
 
 ### Philosophy
 

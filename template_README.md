@@ -36,3 +36,16 @@ This package has been created with [pymc-labs/project-starter](https://github.co
 1. Run `pixi install` to install the dependencies.
 2. Run `pixi r test` to run the tests.
 3. Run `pre-commit install` to set up pre-commit hooks.
+<!-- agent-context:start -->
+
+## Persistent agent context
+
+[AGENTS.md](AGENTS.md) is the entry point for agents. It routes tasks to general workflow conventions and explains how to maintain project context as work proceeds.
+
+- `AGENTS/CONVENTION/`: stable requirements and decision rules.
+- `AGENTS/REFERENCE/`: descriptions of the current implementation, added as the project develops.
+- `AGENTS/*.md`: changelog, quirks, deferred work, and lessons, initially empty apart from instructions and entry formats.
+- `.agents/skills/`: space for project-specific agent workflows, initially containing only `.gitkeep`.
+
+Replace the project description in `AGENTS.md` once the scope is established. Agents should update relevant context during their work and keep implementation references separate from durable requirements.
+<!-- agent-context:end -->

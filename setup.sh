@@ -57,12 +57,14 @@ if [ "${use_opinionated_setup}" = "y" ]; then
     run_pixi="y"
     install_hooks="y"
     create_readme="y"
+    persistent_agent_context="y"
 else
     echo -e "\n\033[33mℹ You will be prompted for each option during the setup.\033[0m"
 
     run_pixi=""
     install_hooks=""
     create_readme=""
+    persistent_agent_context=""
 fi
 
 # == Package Name ==
@@ -122,6 +124,26 @@ if [ "${run_pixi}" = "y" ]; then
     fi
 fi
 
+# == Persistent Agent Context ==
+
+echo -e "\n\033[1m== Persistent Agent Context ==\033[0m"
+echo "  AGENTS.md guides agents to workflow rules, implementation references,"
+echo "  and session notes. The notes and skill directory start empty."
+
+if [ -z "$persistent_agent_context" ]; then
+    prompt_yes_no "Persistent Agent Context" "Do you want to keep persistent agent context for this project?" persistent_agent_context
+fi
+
+if [ "${persistent_agent_context}" = "y" ]; then
+    echo -e "  \033[32m✔ Kept AGENTS.md, AGENTS/, and .agents/skills/.gitkeep.\033[0m"
+else
+    execute_command "rm -rf AGENTS.md AGENTS"
+    execute_command "rm -f .agents/skills/.gitkeep"
+    # Remove empty scaffold directories, preserving any skills the user added.
+    rmdir .agents/skills .agents 2>/dev/null || true
+    echo -e "  \033[33mℹ Removed the persistent agent context scaffold.\033[0m"
+fi
+
 # == Create README ==
 
 echo -e "\n\033[1m== Create README ==\033[0m"
@@ -131,8 +153,12 @@ if [ -z "$create_readme" ]; then
 fi
 
 if [ "${create_readme}" = "y" ]; then
-    execute_command "rm README.md"
-    execute_command "mv template_README.md README.md"
+    if [ "${persistent_agent_context}" = "y" ]; then
+        sed '/^<!-- agent-context:/d' template_README.md > README.md
+    else
+        sed '/^<!-- agent-context:start -->$/,/^<!-- agent-context:end -->$/d' template_README.md > README.md
+    fi
+    execute_command "rm template_README.md"
     echo -e "  \033[32m✔ Created README.md for new project (skeleton only).\033[0m"
 else
     execute_command "rm README.md template_README.md"
@@ -144,6 +170,8 @@ fi
 echo -e "\n\033[1m== Clean Up ==\033[0m"
 
 script_path=$(realpath "$0")
+# These tests exercise the initializer and are not part of the new project.
+execute_command "rm -f tests/test_setup.py"
 execute_command "rm \"$script_path\""
 echo -e "  \033[32m🗑️ Setup script has been deleted.\033[0m"
 

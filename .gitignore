@@ -185,3 +185,6 @@ cython_debug/
 
 # pixi environments
 .pixi
+
+# Disposable analyses and agent experiments
+scripts/.adhoc/scratch/
