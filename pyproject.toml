@@ -34,6 +34,17 @@ pymc = "*"
 default = { features = ["test"], solve-group = "default" }
 test = { features = ["test"], solve-group = "default" }
 minimal = { features = [], solve-group = "default" }
+# decision-hub:start
+decision-hub = { features = ["decision-hub"], no-default-feature = true }
+# decision-hub:end
 
 [tool.pixi.feature.test.tasks]
 test = "pytest"
+
+# decision-hub:start
+[tool.pixi.feature.decision-hub.dependencies]
+python = ">=3.11"
+
+[tool.pixi.feature.decision-hub.pypi-dependencies]
+dhub-cli = ">=0.12.3,<0.13"
+# decision-hub:end

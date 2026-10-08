@@ -28,6 +28,10 @@ Read the relevant conventions and follow their implementation references as need
 | Validate code, configuration, or documentation                | [Testing](AGENTS/CONVENTION/TESTING.md)                 |
 | Implement changes, branch, commit, or prepare a PR            | [Git workflow](AGENTS/CONVENTION/GIT_WORKFLOW.md)       |
 
+<!-- decision-hub:start -->
+For discovering, installing, or using external agent skills, read [Decision Hub](AGENTS/CONVENTION/DECISION_HUB.md).
+<!-- decision-hub:end -->
+
 ## Session context
 
 Skim recent changelog entries and search the other files for the area you are working on. Recheck dated observations against the current code and environment before relying on them.

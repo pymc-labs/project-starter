@@ -13,6 +13,7 @@ However, this chaos can be mitigated with some decent guardrails. This **project
 - 🧪 **`pytest`** for testing. Meanwhile, with `beartype` handling type checks, tests do not have to assert types, and can merely focus on whether the actual logic works.
 - 🔄 **Github Actions** for running the pre-commit checks on each PR, automated testing and dependency management (dependabot).
 - 🧠 **Persistent agent context** for shared workflow rules and continuity between agent sessions, included by default and optional during guided setup.
+- 🧰 **[Decision Hub](https://hub.decision.ai/)** for finding agent skills, available as an optional CLI during guided setup.
 
 ## Usage
 
@@ -42,6 +43,12 @@ Setup derives the Python package name from the local project directory, replacin
 
 <video src="https://github.com/user-attachments/assets/4a1ab682-bdc6-4ac9-90ad-013157c1128d" controls></video>
 
+### Dependency versions
+
+The starter commits `pixi.lock` so its own checks use reproducible dependencies. A requirement such as `pymc = "*"` allows any compatible version, but installation reuses the version in the lockfile.
+
+Setup removes the inherited lockfile and resolves current compatible versions for the new project. If you skip installation, run `pixi install` before committing. If installation fails, setup keeps the configured project and prints the commands to retry. Commit the newly generated `pixi.lock` with `pyproject.toml` so collaborators and CI use the same versions. After initialization, update dependencies deliberately with Pixi; do not routinely delete the lockfile. See [Pixi's lockfile documentation](https://pixi.prefix.dev/latest/workspace/lock_file/).
+
 ### Persistent agent context
 
 The starter includes a small, agent-maintained context structure. The recommended setup keeps it; choose guided setup to opt out. Opting out removes the context and scripts scaffolds and their entries in the generated README, preserving any skills or scripts you have added.
@@ -64,6 +71,16 @@ scripts/                   Maintained workflows (guide only initially)
 [AGENTS.md](AGENTS.md) tells agents which context to read and when to update it. Conventions cover the environment, code, scripts and experiments, data integrity, modeling, testing, and Git workflow. References describe what the code currently does; they do not turn bugs into requirements.
 
 The session files contain instructions and entry formats, with no inherited project history. After initialization, replace the project description in `AGENTS.md` and let the context grow from actual work. Keep new conventions broadly useful, add implementation references only when needed, and keep resolved quirks and deferred tasks up to date. No skills are bundled.
+
+### Optional Decision Hub
+
+Choose guided setup, keep persistent agent context, then enable Decision Hub. It is off by default, including in recommended setup. This keeps `dhub-cli` in a separate `decision-hub` Pixi environment and links [agent instructions](AGENTS/CONVENTION/DECISION_HUB.md) from `AGENTS.md`. Declining removes its configuration and instructions from the generated project.
+
+```sh
+pixi run -e decision-hub dhub ask "Bayesian modeling with PyMC"
+```
+
+Public skill discovery and downloads need no account or API key. Setup installs only the CLI; agents can then select skills that fit the task and installed library versions. No skills are downloaded and no user-wide agent settings are changed during setup. If you defer environment installation, `pixi run -e decision-hub ...` installs the CLI on first use.
 
 ### Philosophy
 

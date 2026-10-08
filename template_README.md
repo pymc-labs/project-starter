@@ -40,6 +40,8 @@ This package has been created with [pymc-labs/project-starter](https://github.co
 1. Run `pixi install` to install the dependencies.
 2. Run `pixi r test` to run the tests.
 3. Run `pre-commit install` to set up pre-commit hooks.
+
+Commit `pyproject.toml` and the generated `pixi.lock` together. The lockfile records the exact dependency versions shared by collaborators and CI; use Pixi to update them deliberately.
 <!-- agent-context:start -->
 
 ## Persistent agent context
@@ -52,4 +54,12 @@ This package has been created with [pymc-labs/project-starter](https://github.co
 - `.agents/skills/`: space for project-specific agent workflows, initially containing only `.gitkeep`.
 
 Replace the project description in `AGENTS.md` once the scope is established. Agents should update relevant context during their work and keep implementation references separate from durable requirements.
+<!-- decision-hub:start -->
+
+### Decision Hub
+
+The optional `decision-hub` Pixi environment provides the `dhub` CLI for finding and downloading agent skills. Public skills need no account or API key. Run `pixi run -e decision-hub dhub --help` to get started; Pixi installs the environment on first use if needed.
+
+See [Decision Hub guidance](AGENTS/CONVENTION/DECISION_HUB.md) for discovery, version compatibility, and sharing selected skills in this project. Setup does not install any skills or change user-wide agent settings.
+<!-- decision-hub:end -->
 <!-- agent-context:end -->

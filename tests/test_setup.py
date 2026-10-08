@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import tomllib
 
 import pytest
 
@@ -50,7 +51,14 @@ def starter_copy(tmp_path):
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
     pixi = bin_dir / "pixi"
-    pixi.write_text('#!/bin/sh\nprintf "%s\\n" "$*" >> "$SETUP_TEST_COMMAND_LOG"\n')
+    pixi.write_text(
+        '#!/bin/sh\nprintf "%s\\n" "$*" >> "$SETUP_TEST_COMMAND_LOG"\n'
+        'if [ "$1" = install ] && [ ! -f pixi.lock ]; then\n'
+        '    printf "# Fresh project lock\\n" > pixi.lock\n'
+        "fi\n"
+        'if [ "$*" = "$SETUP_TEST_FAIL_COMMAND" ]; then exit 42; fi\n'
+        "exit 0\n"
+    )
     pixi.chmod(0o755)
     command_log = tmp_path / "commands.log"
     env = {
@@ -106,13 +114,47 @@ def assert_context(project, enabled):
         assert (project / "AGENTS" / "CONVENTION" / "GIT_WORKFLOW.md").is_file()
 
 
-@pytest.mark.parametrize("context", ["y", "n"])
+def assert_decision_hub(project: Path, enabled: bool) -> None:
+    config = tomllib.loads((project / "pyproject.toml").read_text())["tool"]["pixi"]
+    assert ("decision-hub" in config["environments"]) == enabled
+    assert ("decision-hub" in config["feature"]) == enabled
+    if enabled:
+        environment = config["environments"]["decision-hub"]
+        assert environment["no-default-feature"] is True
+        assert "solve-group" not in environment
+        assert "dhub-cli" in config["feature"]["decision-hub"]["pypi-dependencies"]
+    for environment in ("default", "test", "minimal"):
+        assert "decision-hub" not in config["environments"][environment]["features"]
+    doc = project / "AGENTS" / "CONVENTION" / "DECISION_HUB.md"
+    assert doc.exists() == enabled
+    for name in ("AGENTS.md", "README.md", "pyproject.toml"):
+        path = project / name
+        if path.exists():
+            content = path.read_text()
+            assert "decision-hub:" not in content
+            if name != "pyproject.toml":
+                assert ("AGENTS/CONVENTION/DECISION_HUB.md" in content) == enabled
+
+
+@pytest.mark.parametrize(
+    ("context", "hub"), [("y", "y"), ("y", "n"), ("y", ""), ("n", None)]
+)
 @pytest.mark.parametrize("readme", ["y", "n"])
-def test_guided_context_and_readme_choices(starter_copy, context, readme):
+def test_guided_context_and_readme_choices(
+    starter_copy: tuple[Path, dict[str, str], Path],
+    context: str,
+    hub: str | None,
+    readme: str,
+) -> None:
     project, env, command_log = starter_copy
-    run_setup(project, env, ["n", "n", context, readme, "n"])
+    answers = ["n", "n", context]
+    if hub is not None:
+        answers.append(hub)
+    run_setup(project, env, [*answers, readme, "n"])
 
     assert_context(project, context == "y")
+    assert_decision_hub(project, hub == "y")
+    assert not (project / "pixi.lock").exists()
     assert not command_log.exists()
     readme_path = project / "README.md"
     assert readme_path.exists() == (readme == "y")
@@ -133,15 +175,85 @@ def test_recommended_setup_keeps_context(starter_copy):
     run_setup(project, env, ["", "n"])
 
     assert_context(project, True)
+    assert (project / "pixi.lock").read_text() == "# Fresh project lock\n"
+    assert_decision_hub(project, False)
     assert "[AGENTS.md](AGENTS.md)" in (project / "README.md").read_text()
     assert command_log.read_text().splitlines() == ["install", "r pre-commit install"]
 
 
 def test_guided_context_defaults_to_yes(starter_copy):
     project, env, _ = starter_copy
-    run_setup(project, env, ["n", "n", "", "y", "n"])
+    run_setup(project, env, ["n", "n", "", "", "y", "n"])
 
     assert_context(project, True)
+    assert_decision_hub(project, False)
+
+
+@pytest.mark.parametrize(("context", "hub"), [("y", "y"), ("y", "n"), ("n", None)])
+@pytest.mark.parametrize("hooks", ["y", "n"])
+def test_environment_installation_choices(
+    starter_copy: tuple[Path, dict[str, str], Path],
+    context: str,
+    hub: str | None,
+    hooks: str,
+) -> None:
+    project, env, command_log = starter_copy
+    answers = ["n", "y", context]
+    if hub is not None:
+        answers.append(hub)
+    run_setup(project, env, [*answers, hooks, "y", "n"])
+
+    assert_context(project, context == "y")
+    assert_decision_hub(project, hub == "y")
+    expected_commands = ["install"]
+    if hub == "y":
+        expected_commands.append("install -e decision-hub")
+    if hooks == "y":
+        expected_commands.append("r pre-commit install")
+    assert command_log.read_text().splitlines() == expected_commands
+    assert (project / "pixi.lock").read_text() == "# Fresh project lock\n"
+    config = tomllib.loads((project / "pyproject.toml").read_text())["tool"]["pixi"]
+    assert ("pre-commit" in config["dependencies"]) == (hooks == "y")
+    assert (project / ".pre-commit-config.yaml").exists() == (hooks == "y")
+    assert (project / ".github/workflows/code-style.yaml").exists() == (hooks == "y")
+
+
+@pytest.mark.parametrize(
+    "failed_command", ["install", "install -e decision-hub", "r pre-commit install"]
+)
+def test_install_failure_preserves_configured_project(
+    starter_copy: tuple[Path, dict[str, str], Path], failed_command: str
+) -> None:
+    project, env, command_log = starter_copy
+    env["SETUP_TEST_FAIL_COMMAND"] = failed_command
+    notes = project / "notes.txt"
+    notes.write_text("Untracked project work.\n")
+    with (project / "package_name" / "model.py").open("a") as model:
+        model.write("\n# Uncommitted project work.\n")
+    result = subprocess.run(
+        ["bash", "setup.sh"],
+        cwd=project,
+        env=env,
+        input="n\ny\ny\ny\ny\ny\nn\n",
+        text=True,
+        capture_output=True,
+        timeout=60,
+    )
+
+    assert result.returncode == 1
+    assert "Environment setup failed" in result.stderr
+    assert "Setup Complete" not in result.stdout
+    assert "Reverting changes" not in result.stdout
+    assert_context(project, True)
+    assert_decision_hub(project, True)
+    assert notes.read_text() == "Untracked project work.\n"
+    assert (
+        "# Uncommitted project work."
+        in (project / "sample_project" / "model.py").read_text()
+    )
+    assert not (project / "setup.sh").exists()
+    assert command_log.read_text().splitlines()[-1] == failed_command
+    assert "pixi install -e decision-hub" in result.stderr
 
 
 def test_initialization_preserves_added_context(starter_copy):
@@ -188,7 +300,7 @@ def test_opt_out_preserves_added_scripts(starter_copy):
 @pytest.mark.parametrize("project_name", ["scripts", "Scripts", "AGENTS", "agents"])
 @pytest.mark.parametrize(
     "answers",
-    [["", "n"], ["n", "n", "y", "y", "n"], ["n", "n", "n", "y", "n"]],
+    [["", "n"], ["n", "n", "y", "y", "y", "n"], ["n", "n", "n", "y", "n"]],
     ids=["recommended", "keep-context", "opt-out"],
 )
 def test_setup_rejects_collisions_without_changes(

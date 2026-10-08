@@ -8,16 +8,34 @@ execute_command() {
     eval "$1"
 }
 
+install_environment_command() {
+    if ! execute_command "$1"; then
+        echo "Environment setup failed. The configured project files were kept." >&2
+        echo "Retry 'pixi install' before committing the new lockfile." >&2
+        if [ "$decision_hub" = "y" ]; then
+            echo "Then run 'pixi install -e decision-hub'." >&2
+        fi
+        if [ "$install_hooks" = "y" ]; then
+            echo "Then run 'pixi r pre-commit install'." >&2
+        fi
+        exit 1
+    fi
+}
+
 prompt_yes_no() {
+    local default="${4:-y}"
+    local choices="Y/n"
+    [ "$default" = "n" ] && choices="y/N"
     echo -e "\n\033[1;34m? $1\033[0m"
     while true; do
-        if ! read -r -p "  $2 [Y/n]: " response; then
+        if ! read -r -p "  $2 [$choices]: " response; then
             # Handle EOF (Ctrl+D)
             echo -e ""
             exit 1
         fi
         case $response in
-            [Yy]* | '') eval "$3='y'"; return 0 ;;
+            '') eval "$3='$default'"; return 0 ;;
+            [Yy]*) eval "$3='y'"; return 0 ;;
             [Nn]*) eval "$3='n'"; return 0 ;;
             *) echo "  Please answer yes (y) or no (n)." ;;
         esac
@@ -76,6 +94,8 @@ if [ "${use_opinionated_setup}" = "y" ]; then
     install_hooks="y"
     create_readme="y"
     persistent_agent_context="y"
+    decision_hub="n"
+    echo "  Decision Hub is off by default; choose guided setup to enable it."
 else
     echo -e "\n\033[33mℹ You will be prompted for each option during the setup.\033[0m"
 
@@ -83,6 +103,7 @@ else
     install_hooks=""
     create_readme=""
     persistent_agent_context=""
+    decision_hub=""
 fi
 
 # == Package Name ==
@@ -115,29 +136,6 @@ if [ -z "$run_pixi" ]; then
     prompt_yes_no "Pixi Install" "Do you want to run 'pixi install'?" run_pixi
 fi
 
-if [ "${run_pixi}" = "y" ]; then
-    execute_command "pixi install"
-    echo -e "  \033[32m✔ 'pixi install' completed.\033[0m"
-
-    # == Use Pre-commit Hooks ==
-
-    echo -e "\n\033[1m== Use Pre-commit Hooks ==\033[0m"
-    if [ -z "$install_hooks" ]; then
-        prompt_yes_no "Pre-commit Hooks" "Do you want to use pre-commit hooks?" install_hooks
-    fi
-
-    if [ "${install_hooks}" = "y" ]; then
-        execute_command "pixi r pre-commit install"
-        echo -e "  \033[32m✔ Pre-commit hooks installed successfully.\033[0m"
-    else
-        echo -e "\n  Removing pre-commit configuration files and dependency..."
-        execute_command "rm -f .pre-commit-config.yaml"
-        execute_command "rm -f .github/workflows/code-style.yaml"
-        execute_command "sed -i '' '/pre-commit = \"*\"/d' pyproject.toml"
-        echo -e "  \033[32m✔ Pre-commit configuration files and dependency removed.\033[0m"
-    fi
-fi
-
 # == Persistent Agent Context ==
 
 echo -e "\n\033[1m== Persistent Agent Context ==\033[0m"
@@ -162,6 +160,58 @@ else
     rmdir .agents/skills .agents 2>/dev/null || true
     rmdir scripts/.adhoc/reference scripts/.adhoc/scratch scripts/.adhoc scripts 2>/dev/null || true
     echo -e "  \033[33mℹ Removed the persistent agent context scaffold.\033[0m"
+fi
+
+# == Decision Hub ==
+
+if [ "${persistent_agent_context}" = "y" ]; then
+    if [ -z "$decision_hub" ]; then
+        echo "  Decision Hub finds and downloads agent skills. Public skills need no account."
+        echo "  Enable its CLI in a separate Pixi environment, with instructions in AGENTS/."
+        prompt_yes_no "Decision Hub" "Do you want to include Decision Hub (dhub)?" decision_hub n
+    fi
+else
+    decision_hub="n"
+fi
+
+if [ "${decision_hub}" = "y" ]; then
+    sed '/^# decision-hub:/d' pyproject.toml > pyproject.toml.tmp &&
+        mv pyproject.toml.tmp pyproject.toml || exit 1
+    for doc in AGENTS.md template_README.md; do
+        sed '/^<!-- decision-hub:/d' "$doc" > "$doc.tmp" && mv "$doc.tmp" "$doc" || exit 1
+    done
+    echo "  Kept Decision Hub. Use: pixi run -e decision-hub dhub --help"
+else
+    sed '/^# decision-hub:start$/,/^# decision-hub:end$/d' pyproject.toml > pyproject.toml.tmp &&
+        mv pyproject.toml.tmp pyproject.toml || exit 1
+    for doc in AGENTS.md template_README.md; do
+        [ -f "$doc" ] || continue
+        sed '/^<!-- decision-hub:start -->$/,/^<!-- decision-hub:end -->$/d' "$doc" > "$doc.tmp" &&
+            mv "$doc.tmp" "$doc" || exit 1
+    done
+    rm -f AGENTS/CONVENTION/DECISION_HUB.md
+fi
+
+# Choose all dependencies before solving the new project's environment.
+if [ "${run_pixi}" = "y" ]; then
+    if [ -z "$install_hooks" ]; then
+        prompt_yes_no "Pre-commit Hooks" "Do you want to use pre-commit hooks?" install_hooks
+    fi
+    if [ "${install_hooks}" = "n" ]; then
+        rm -f .pre-commit-config.yaml .github/workflows/code-style.yaml
+        sed '/^pre-commit = /d' pyproject.toml > pyproject.toml.tmp &&
+            mv pyproject.toml.tmp pyproject.toml || exit 1
+    fi
+fi
+
+# The starter's lock is for starter CI. Resolve current compatible versions once
+# for each new project, then commit and retain that project's own lockfile.
+rm -f pixi.lock
+if [ "${run_pixi}" = "n" ]; then
+    echo "  Run 'pixi install' to generate this project's lockfile before committing."
+    if [ "${decision_hub}" = "y" ]; then
+        echo "  Then run 'pixi install -e decision-hub' to install the optional CLI."
+    fi
 fi
 
 # == Create README ==
@@ -195,12 +245,22 @@ execute_command "rm -f tests/test_setup.py"
 execute_command "rm \"$script_path\""
 echo -e "  \033[32m🗑️ Setup script has been deleted.\033[0m"
 
+# Configuration is complete. A failed download must not roll back project files.
+revert_on_exit=false
+if [ "${run_pixi}" = "y" ]; then
+    install_environment_command "pixi install"
+    if [ "${decision_hub}" = "y" ]; then
+        install_environment_command "pixi install -e decision-hub"
+    fi
+    if [ "${install_hooks}" = "y" ]; then
+        install_environment_command "pixi r pre-commit install"
+    fi
+fi
+
 # Final message
 echo -e "\n\033[1m🎉 == Setup Complete! == 🎉\033[0m"
 echo -e "\n  \033[33mNote: To undo and start over, simply run:\033[0m"
 echo -e "  \033[36m  git reset --hard $(git rev-list --max-parents=0 HEAD) && git clean -fd\033[0m"
-
-revert_on_exit=false
 
 # Ask about committing and pushing
 prompt_yes_no "Commit and Push" "Do you want to commit and push these changes?" commit_and_push
