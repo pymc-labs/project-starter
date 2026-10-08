@@ -15,6 +15,10 @@
 - `package_name/`: Contains the package logic
 - `tests/`: Contains tests for the package
 - `notebooks/`: Contains exploratory code for testing new features
+<!-- agent-context:start -->
+- [`scripts/`](scripts/README.md): Maintained workflow entry points
+- [`scripts/.adhoc/`](scripts/.adhoc/README.md): Preserved reference analyses and ignored scratch work
+<!-- agent-context:end -->
 
 ## Development
 

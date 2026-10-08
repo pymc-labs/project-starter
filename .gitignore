@@ -186,5 +186,6 @@ cython_debug/
 # pixi environments
 .pixi
 
-# Disposable analyses and agent experiments
-scripts/.adhoc/scratch/
+# Disposable analyses and agent experiments; retain the empty workspace scaffold.
+scripts/.adhoc/scratch/*
+!scripts/.adhoc/scratch/.gitkeep

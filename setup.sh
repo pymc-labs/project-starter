@@ -129,6 +129,7 @@ fi
 echo -e "\n\033[1m== Persistent Agent Context ==\033[0m"
 echo "  AGENTS.md guides agents to workflow rules, implementation references,"
 echo "  and session notes. The notes and skill directory start empty."
+echo "  This also includes scripts/ with .adhoc/reference/ and ignored .adhoc/scratch/."
 
 if [ -z "$persistent_agent_context" ]; then
     prompt_yes_no "Persistent Agent Context" "Do you want to keep persistent agent context for this project?" persistent_agent_context
@@ -138,12 +139,14 @@ if [ "${persistent_agent_context}" = "y" ]; then
     # The initialized project should not inherit instructions for maintaining the starter.
     sed '/^<!-- starter-only:start -->$/,/^<!-- starter-only:end -->$/d' AGENTS.md > AGENTS.md.tmp &&
         mv AGENTS.md.tmp AGENTS.md || exit 1
-    echo -e "  \033[32m✔ Kept AGENTS.md, AGENTS/, and .agents/skills/.gitkeep.\033[0m"
+    echo -e "  \033[32m✔ Kept AGENTS.md, AGENTS/, .agents/skills/, and scripts/.\033[0m"
 else
     execute_command "rm -rf AGENTS.md AGENTS"
     execute_command "rm -f .agents/skills/.gitkeep"
-    # Remove empty scaffold directories, preserving any skills the user added.
+    execute_command "rm -f scripts/README.md scripts/.adhoc/README.md scripts/.adhoc/reference/.gitkeep scripts/.adhoc/scratch/.gitkeep"
+    # Remove empty scaffold directories, preserving user-added skills and scripts.
     rmdir .agents/skills .agents 2>/dev/null || true
+    rmdir scripts/.adhoc/reference scripts/.adhoc/scratch scripts/.adhoc scripts 2>/dev/null || true
     echo -e "  \033[33mℹ Removed the persistent agent context scaffold.\033[0m"
 fi
 

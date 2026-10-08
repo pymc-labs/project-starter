@@ -19,11 +19,13 @@ However, this chaos can be mitigated with some decent guardrails. This **project
 This is a pretty minimal template,
 that assumes you have opinions and may want to add/remove stuff too.
 To use it as intended (not that you have to),
-you should put your main model logic in the `package_name/models.py` file,
+you should put your main model logic in the `package_name/model.py` file,
 adjacent logic split into sibling files,
 and then have a script that imports from `package_name` and runs the model,
 e.g. in a `scripts/run_model.py` file,
-or a notebook somewhere (e.g. in `experimentation`).
+or a notebook in `notebooks/`.
+
+Enabling persistent agent context also keeps the [scripts scaffold](scripts/README.md): a home for maintained commands, with [ad hoc directories](scripts/.adhoc/README.md) for tracked reference analyses and ignored scratch work.
 
 ### Prerequisites
 
@@ -40,7 +42,7 @@ or a notebook somewhere (e.g. in `experimentation`).
 
 ### Persistent agent context
 
-The starter includes a small, agent-maintained context structure. The recommended setup keeps it; choose guided setup to opt out. Opting out removes the context scaffold and its section from the generated README.
+The starter includes a small, agent-maintained context structure. The recommended setup keeps it; choose guided setup to opt out. Opting out removes the context and scripts scaffolds and their entries in the generated README, preserving any skills or scripts you have added.
 
 ```text
 AGENTS.md                  Agent entry point and task guidance
@@ -52,6 +54,9 @@ AGENTS/
   DEFERRED.md              Concrete unfinished work
   AGENT_MISTAKES.md         Lessons and verified fixes
 .agents/skills/.gitkeep     Empty home for future project skills
+scripts/                   Maintained workflows (guide only initially)
+  .adhoc/reference/        Preserved analyses (.gitkeep only initially)
+  .adhoc/scratch/          Ignored experiments (.gitkeep tracked)
 ```
 
 [AGENTS.md](AGENTS.md) tells agents which context to read and when to update it. Conventions cover the environment, code, scripts and experiments, data integrity, modeling, testing, and Git workflow. References describe what the code currently does; they do not turn bugs into requirements.

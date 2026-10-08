@@ -83,6 +83,13 @@ def assert_context(project, enabled):
     assert (project / "AGENTS.md").exists() == enabled
     assert (project / "AGENTS").exists() == enabled
     assert (project / ".agents" / "skills" / ".gitkeep").exists() == enabled
+    for script_path in (
+        "scripts/README.md",
+        "scripts/.adhoc/README.md",
+        "scripts/.adhoc/reference/.gitkeep",
+        "scripts/.adhoc/scratch/.gitkeep",
+    ):
+        assert (project / script_path).exists() == enabled
     if enabled:
         agent_context = (project / "AGENTS.md").read_text()
         assert "setup.sh" not in agent_context
@@ -110,9 +117,12 @@ def test_guided_context_and_readme_choices(starter_copy, context, readme):
         content = readme_path.read_text()
         assert content.startswith("# sample_project\n")
         assert ("[AGENTS.md](AGENTS.md)" in content) == (context == "y")
+        assert ("(scripts/README.md)" in content) == (context == "y")
+        assert ("(scripts/.adhoc/README.md)" in content) == (context == "y")
         assert "agent-context:" not in content
     if context == "n":
         assert not (project / ".agents").exists()
+        assert not (project / "scripts").exists()
 
 
 def test_recommended_setup_keeps_context(starter_copy):
@@ -153,3 +163,20 @@ def test_opt_out_preserves_added_skills(starter_copy):
 
     assert_context(project, False)
     assert skill.read_text() == "A project-specific workflow.\n"
+
+
+def test_opt_out_preserves_added_scripts(starter_copy):
+    project, env, _ = starter_copy
+    added_paths = [
+        project / "scripts" / "custom.py",
+        project / "scripts" / ".adhoc" / "reference" / "custom.py",
+        project / "scripts" / ".adhoc" / "scratch" / "session" / "result.txt",
+    ]
+    for path in added_paths:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("# User-created content.\n")
+    run_setup(project, env, ["n", "n", "n", "y", "n"])
+
+    assert_context(project, False)
+    for path in added_paths:
+        assert path.read_text() == "# User-created content.\n"
