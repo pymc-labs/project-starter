@@ -15,6 +15,24 @@ pixi run -e decision-hub dhub info pymc-labs/pymc-modeling
 
 Pixi installs this environment on first use if setup deferred installation. Public discovery and downloads work without a Decision Hub account or API key. Login is needed for publishing and private access; do not initiate login for public discovery. Search queries leave the machine, so use generic descriptions rather than client data or private project details. If the service is unavailable, use official documentation and existing local skills.
 
+## Common PyMC Labs skills
+
+These are useful starting points for many projects; choose the skills that match the task and installed library versions:
+
+- `pymc-labs/pymc-modeling`: Bayesian modeling, sampling, and diagnostics with PyMC.
+- `pymc-labs/pymc-extras`: PyMC Extras features such as splines, shrinkage priors, marginalization, and Laplace approximation.
+- `pymc-labs/mmm-modeling`: media mix modeling with PyMC-Marketing, including channel contributions and budget optimization.
+
+To install them using the project's CLI:
+
+```sh
+pixi run -e decision-hub dhub install pymc-labs/pymc-modeling --agent all
+pixi run -e decision-hub dhub install pymc-labs/pymc-extras --agent all
+pixi run -e decision-hub dhub install pymc-labs/mmm-modeling --agent all
+```
+
+These commands install the latest skill releases and link them into all detected agents' user-wide skill directories. For a specific version or a shared project copy, follow [Use a skill](#use-a-skill) below.
+
 ## Use a skill
 
 1. Inspect the skill's publisher, source, version, license, and description. Check the project's actual library versions in its Pixi environment before relying on examples. For PyMC, use `pixi run python -c "import pymc; print(pymc.__version__)"`. Resolve incompatible guidance against the installed version's official documentation; do not upgrade project dependencies merely to match a skill.
