@@ -72,11 +72,14 @@ def run_setup(project, env, answers):
         timeout=60,
     )
     assert result.returncode == 0, result.stdout + result.stderr
-    assert (project / "sample_project" / "model.py").is_file()
-    assert not (project / "package_name").exists()
+    package_name = project.name.replace("-", "_")
+    assert (project / package_name / "model.py").is_file()
+    if package_name != "package_name":
+        assert not (project / "package_name").exists()
     assert not (project / "setup.sh").exists()
     assert not (project / "tests" / "test_setup.py").exists()
     assert not (project / "template_README.md").exists()
+    return result
 
 
 def assert_context(project, enabled):
@@ -180,3 +183,73 @@ def test_opt_out_preserves_added_scripts(starter_copy):
     assert_context(project, False)
     for path in added_paths:
         assert path.read_text() == "# User-created content.\n"
+
+
+@pytest.mark.parametrize("project_name", ["scripts", "Scripts", "AGENTS", "agents"])
+@pytest.mark.parametrize(
+    "answers",
+    [["", "n"], ["n", "n", "y", "y", "n"], ["n", "n", "n", "y", "n"]],
+    ids=["recommended", "keep-context", "opt-out"],
+)
+def test_setup_rejects_collisions_without_changes(
+    starter_copy: tuple[Path, dict[str, str], Path],
+    project_name: str,
+    answers: list[str],
+) -> None:
+    project, env, command_log = starter_copy
+    project = project.rename(project.with_name(project_name))
+    with (project / "package_name" / "model.py").open("a") as model:
+        model.write("\n# Uncommitted project work.\n")
+    (project / "notes.txt").write_text("Untracked project work.\n")
+    (project / ".pixi").mkdir()
+    (project / ".pixi" / "environment.txt").write_text("Existing environment.\n")
+
+    def snapshot_files() -> dict[Path, bytes]:
+        return {
+            path.relative_to(project): path.read_bytes()
+            for path in project.rglob("*")
+            if ".git" not in path.relative_to(project).parts and path.is_file()
+        }
+
+    before = snapshot_files()
+    status_before = subprocess.check_output(
+        ["git", "status", "--porcelain"], cwd=project
+    )
+    result = subprocess.run(
+        ["bash", "setup.sh"],
+        cwd=project,
+        env=env,
+        input="\n".join(answers) + "\n",
+        text=True,
+        capture_output=True,
+        timeout=60,
+    )
+
+    assert result.returncode != 0, result.stdout + result.stderr
+    assert "conflicts with" in result.stderr
+    assert "Rename the project directory" in result.stderr
+    assert snapshot_files() == before
+    assert (
+        subprocess.check_output(["git", "status", "--porcelain"], cwd=project)
+        == status_before
+    )
+    assert not command_log.exists()
+
+    project = project.rename(project.with_name("sample-project"))
+    run_setup(project, env, answers)
+    assert (
+        "# Uncommitted project work."
+        in (project / "sample_project" / "model.py").read_text()
+    )
+
+
+def test_setup_keeps_original_package_name(
+    starter_copy: tuple[Path, dict[str, str], Path],
+) -> None:
+    project, env, _ = starter_copy
+    project = project.rename(project.with_name("package_name"))
+
+    result = run_setup(project, env, ["", "n"])
+
+    assert result.stderr == ""
+    assert_context(project, True)

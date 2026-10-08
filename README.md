@@ -38,6 +38,8 @@ Enabling persistent agent context also keeps the [scripts scaffold](scripts/READ
 2. Git clone the new repository to your local machine.
 3. Run the setup script `bash setup.sh` and follow the instructions.
 
+Setup derives the Python package name from the local project directory, replacing hyphens with underscores. If that name conflicts with an existing top-level path (ignoring letter case), such as `scripts` or `AGENTS`, setup stops before changing files. Rename the local project directory and rerun setup. Keeping the original `package_name` is also supported.
+
 <video src="https://github.com/user-attachments/assets/4a1ab682-bdc6-4ac9-90ad-013157c1128d" controls></video>
 
 ### Persistent agent context

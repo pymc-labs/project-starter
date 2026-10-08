@@ -1,9 +1,5 @@
 #!/bin/bash
 
-# Trap to handle cleanup on exit
-trap exit_gracefully SIGINT SIGTERM EXIT
-revert_on_exit=true
-
 # Functions -------------------------------------------------------------------
 # -----------------------------------------------------------------------------
 
@@ -48,6 +44,28 @@ exit_gracefully() {
     fi
 }
 
+# Validate before enabling rollback: rejecting a name must preserve local work.
+current_name="package_name"
+name=$(basename "$(pwd)" | tr '-' '_')
+name_lower=$(printf '%s' "$name" | tr '[:upper:]' '[:lower:]')
+
+# Check case-insensitively so generated projects also work on macOS filesystems.
+for entry in * .[!.]* ..?*; do
+    [ -e "$entry" ] || [ -L "$entry" ] || continue
+    if [ "$entry" = "$current_name" ] && [ "$name" = "$current_name" ]; then
+        continue
+    fi
+    if [ "$(printf '%s' "$entry" | tr '[:upper:]' '[:lower:]')" = "$name_lower" ]; then
+        printf "Cannot initialize package '%s': its name conflicts with '%s' (case-insensitive).\n" "$name" "$entry" >&2
+        printf "Rename the project directory and run 'bash setup.sh' again. No files were changed.\n" >&2
+        exit 1
+    fi
+done
+
+# Trap to handle cleanup only after validation succeeds.
+trap exit_gracefully SIGINT SIGTERM EXIT
+revert_on_exit=true
+
 # ? Setup Mode
 prompt_yes_no "Setup Mode" "Wanna sit back and enjoy the ride (accept all defaults)?" use_opinionated_setup
 
@@ -71,10 +89,6 @@ fi
 
 echo -e "\n\033[1m== Package Name ==\033[0m"
 
-# ? Package Name
-current_name="package_name"
-name=$(basename "$(pwd)" | tr '-' '_')
-
 find . -type f -not -path '*/\.*' -not -name 'setup.sh' -exec sh -c '
     if file -b --mime-type "$1" | grep -q "^text/"; then
         if [ "$(uname)" = "Darwin" ]; then
@@ -87,7 +101,7 @@ find . -type f -not -path '*/\.*' -not -name 'setup.sh' -exec sh -c '
     fi
 ' sh {} "$current_name" "$name" \;
 
-if [ -d "$current_name" ]; then
+if [ "$name" != "$current_name" ] && [ -d "$current_name" ]; then
     mv "$current_name" "$name"
     echo -e "  \033[32m✔ Directory renamed to $name\033[0m"
 fi
