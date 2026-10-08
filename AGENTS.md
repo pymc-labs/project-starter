@@ -55,12 +55,40 @@ Maintaining relevant context is part of the task, not a separate handoff to the 
 2. Implement the requested change, then exercise the behavior the human will use. Follow the [build-test-fix-learn cycle](AGENTS/CONVENTION/GIT_WORKFLOW.md#build-test-fix-learn) and [testing rules](AGENTS/CONVENTION/TESTING.md).
 3. Before expensive model runs, validate data and configuration and start with a small smoke run. Increase compute only when the task and diagnostics justify it; a successful short run does not establish model validity.
 4. Update relevant context during the same task, then report the outcome following [Writing for humans](#writing-for-humans).
+<!-- starter-only:start -->
 
 While `setup.sh` is present, this repository is still a starter: keep the reference and session files as empty templates. Once setup removes it, populate them from actual project work and replace the project description when its purpose is established.
+<!-- starter-only:end -->
 
 # About the humans
 
-We are core members of PyMC Labs and experts in Bayesian modeling, with a few exceptions. When references are made to other team members, use what is available through `git` and, if knowing more would add value, the [PyMC Labs team page](https://www.pymc-labs.com/team). Adapt this description when the project team differs.
+We are core members of PyMC Labs and experts in Bayesian modeling, with a few exceptions. Assume that work is contributed by a whole team; do not attribute everyone's changes to the person currently prompting you.
+
+## Identifying people
+
+Start with these commands from the repository root:
+
+```bash
+# Configured author identity for this checkout, including environment overrides.
+git var GIT_AUTHOR_IDENT
+
+# Contributor names and emails across all locally available branches and tags.
+git shortlog -sne --all
+```
+
+The configured identity is a clue to who is prompting, not proof: a shared machine or automation may use another identity. Prefer the human's explicit self-identification when it differs, and never infer the current user from the latest commit's author.
+
+Resolve a mentioned name against the contributor list; a GitHub handle is not required. For example:
+
+```bash
+git shortlog -sne --all | rg -i -- 'Teemu'
+git log --all --use-mailmap --fixed-strings --regexp-ignore-case \
+  --author='Teemu' --format='%h %cI %aN <%aE> %s' --stat
+```
+
+- Once the person is resolved, prefer their identified email address in `--author`; repeat the flag for verified aliases. Respect `.mailmap` mappings. If several people match, clarify rather than guessing.
+- For questions such as "what did Teemu do here last week", add explicit `--since` and `--until` timestamps for the requested calendar period in the human's timezone. "Last week" means the previous calendar week, not the last seven days. Inspect relevant diffs with `git show <commit>` before summarizing the work.
+- These commands cover available Git history. Check `git rev-parse --is-shallow-repository` and fetch relevant refs or deepen a shallow clone when needed before concluding there was no activity. Commits alone do not establish PR reviews, uncommitted work, or everything a teammate did.
 
 ## Signals
 

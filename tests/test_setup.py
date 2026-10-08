@@ -84,6 +84,9 @@ def assert_context(project, enabled):
     assert (project / "AGENTS").exists() == enabled
     assert (project / ".agents" / "skills" / ".gitkeep").exists() == enabled
     if enabled:
+        agent_context = (project / "AGENTS.md").read_text()
+        assert "setup.sh" not in agent_context
+        assert "starter-only:" not in agent_context
         assert sorted(p.name for p in (project / "AGENTS" / "REFERENCE").iterdir()) == [
             "README.md"
         ]
@@ -126,6 +129,19 @@ def test_guided_context_defaults_to_yes(starter_copy):
     run_setup(project, env, ["n", "n", "", "y", "n"])
 
     assert_context(project, True)
+
+
+def test_initialization_preserves_added_context(starter_copy):
+    project, env, _ = starter_copy
+    agent_path = project / "AGENTS.md"
+    project_context = (
+        "\n## Project-specific instructions\n\nKeep observation units explicit.\n"
+    )
+    agent_path.write_text(agent_path.read_text() + project_context)
+    run_setup(project, env, ["", "n"])
+
+    assert_context(project, True)
+    assert project_context in agent_path.read_text()
 
 
 def test_opt_out_preserves_added_skills(starter_copy):

@@ -135,6 +135,9 @@ if [ -z "$persistent_agent_context" ]; then
 fi
 
 if [ "${persistent_agent_context}" = "y" ]; then
+    # The initialized project should not inherit instructions for maintaining the starter.
+    sed '/^<!-- starter-only:start -->$/,/^<!-- starter-only:end -->$/d' AGENTS.md > AGENTS.md.tmp &&
+        mv AGENTS.md.tmp AGENTS.md || exit 1
     echo -e "  \033[32m✔ Kept AGENTS.md, AGENTS/, and .agents/skills/.gitkeep.\033[0m"
 else
     execute_command "rm -rf AGENTS.md AGENTS"
