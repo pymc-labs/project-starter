@@ -1,7 +1,5 @@
 # Testing and validation
 
-Read when validating code, configuration, dependencies, or documentation.
-
 - Choose checks for the changed behavior. Start with focused tests and input/configuration validation, then exercise the affected workflow. Run expensive integration or sampling checks when the change warrants them.
 - Add regression coverage for meaningful behavior. Test inputs, outputs, and failure cases; avoid placeholder tests, tests that mirror the implementation, and assertions about documentation wording.
 - Keep routine tests independent of live credentials, external writes, and long model fits. State what mocks and synthetic fixtures do and do not establish.
