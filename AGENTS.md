@@ -18,26 +18,28 @@ When code and documentation disagree, classify the mismatch. A requirement viola
 
 Read the relevant conventions and follow their implementation references as needed. Several rows may apply; there is no need to read every context file for every task.
 
-| Task | Read |
-| --- | --- |
-| Run commands, manage dependencies, diagnose imports | [Environment](AGENTS/CONVENTION/ENVIRONMENT.md) |
-| Edit Python code | [Code style](AGENTS/CONVENTION/CODE_STYLE.md) |
-| Add a script, notebook, analysis, or agent experiment | [Common patterns](AGENTS/CONVENTION/COMMON_PATTERNS.md) |
+| Task                                                          | Read                                                    |
+| ------------------------------------------------------------- | ------------------------------------------------------- |
+| Run commands, manage dependencies, diagnose imports           | [Environment](AGENTS/CONVENTION/ENVIRONMENT.md)         |
+| Edit Python code                                              | [Code style](AGENTS/CONVENTION/CODE_STYLE.md)           |
+| Add a script, notebook, analysis, or agent experiment         | [Common patterns](AGENTS/CONVENTION/COMMON_PATTERNS.md) |
 | Change transformations, joins, missing values, or data splits | [Data processing](AGENTS/CONVENTION/DATA_PROCESSING.md) |
-| Build, fit, compare, or interpret a model | [Modeling](AGENTS/CONVENTION/MODELING.md) |
-| Validate code, configuration, or documentation | [Testing](AGENTS/CONVENTION/TESTING.md) |
-| Implement changes, branch, commit, or prepare a PR | [Git workflow](AGENTS/CONVENTION/GIT_WORKFLOW.md) |
+| Build, fit, compare, or interpret a model                     | [Modeling](AGENTS/CONVENTION/MODELING.md)               |
+| Validate code, configuration, or documentation                | [Testing](AGENTS/CONVENTION/TESTING.md)                 |
+| Implement changes, branch, commit, or prepare a PR            | [Git workflow](AGENTS/CONVENTION/GIT_WORKFLOW.md)       |
 
 ## Session context
 
 Skim recent changelog entries and search the other files for the area you are working on. Recheck dated observations against the current code and environment before relying on them.
 
-| File | Read / update when |
-| --- | --- |
-| [CHANGELOG](AGENTS/CHANGELOG.md) | Starting substantive work; record changes, decisions, and validation that the next session needs. |
-| [QUIRKS](AGENTS/QUIRKS.md) | Debugging or discovering a surprising behavior; record evidence, scope, and any verified workaround. |
-| [DEFERRED](AGENTS/DEFERRED.md) | Planning implementation or leaving concrete work unfinished; check whether relevant follow-ups fit the current task. |
-| [AGENT_MISTAKES](AGENTS/AGENT_MISTAKES.md) | Self-testing reveals a mistake or reviewing a recurring failure; record the cause, correction, and prevention. |
+| File                                       | Read / update when                                                                                                                   |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| [CHANGELOG](AGENTS/CHANGELOG.md)           | Starting substantive work; record changes, decisions, and validation that the next session needs.                                    |
+| [QUIRKS](AGENTS/QUIRKS.md)                 | Debugging or discovering a surprising behavior; record evidence, scope, and any verified workaround. Not for bugs.                   |
+| [DEFERRED](AGENTS/DEFERRED.md)             | Planning implementation or leaving concrete work unfinished; check whether relevant follow-ups fit the current task. Not for issues. |
+| [AGENT_MISTAKES](AGENTS/AGENT_MISTAKES.md) | Self-testing reveals a mistake or reviewing a recurring failure; record the cause, correction, and prevention.                       |
+
+Github Issues are persistent context too. They document oncoming dev work, bugs, feature requests, etc. Run `gh issue list` to see open work (planned + in-flight).
 
 ## Maintaining context
 
@@ -58,6 +60,7 @@ Maintaining relevant context is part of the task, not a separate handoff to the 
 <!-- starter-only:start -->
 
 While `setup.sh` is present, this repository is still a starter: keep the reference and session files as empty templates. Once setup removes it, populate them from actual project work and replace the project description when its purpose is established.
+
 <!-- starter-only:end -->
 
 # About the humans

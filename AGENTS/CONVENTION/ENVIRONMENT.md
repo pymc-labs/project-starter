@@ -1,7 +1,5 @@
 # Environment
 
-Read before running commands, managing dependencies, or diagnosing imports.
-
 - Run project Python commands from the repository root through Pixi. Use `pixi run python ...` and `pixi run python -m pytest ...` rather than relying on the system Python.
 - Treat `pyproject.toml` and `pixi.lock` as the environment sources of truth. Update and review both deliberately when dependencies change; do not refresh dependencies just to run a check.
 - Choose the environment and available compute appropriate to the task. Check the host before assuming a GPU, remote storage, or credentials are available.

@@ -1,7 +1,5 @@
 # Git workflow
 
-Read for implementation work, branching, committing, or preparing a PR.
-
 ## Git state
 
 - Inspect `git status` and the relevant diff first. Preserve the human's existing changes and requested commit boundaries.
@@ -20,8 +18,9 @@ Apply this cycle to implementation work, with checks scaled using [Testing](TEST
 4. **Record evidence:** report what was verified and any remaining limitation. Check off PR test-plan items only after verification.
 5. **Learn:** record a mistake in [AGENT_MISTAKES](../AGENT_MISTAKES.md) when it reveals a useful lesson, with its cause, correction, and evidence. If no mistake was found, add nothing.
 
-Update relevant context during the same task. Follow [Writing for humans](../../AGENTS.md#writing-for-humans) for the final report.
-
 ## Pull requests
 
-Lead with the problem and resulting behavior. Include a summary and test plan, relevant decisions and tradeoffs, evidence for completed checks, and material limitations. Mention self-testing discoveries when they help review the change; link issues only when they exist.
+Making it easy for humans to understand what change a PR implies, and why it can be trusted, is very important. It communicates to collaborators what you did on behalf of the human who managed your session. Include `## Summary` and `## Test plan` (checklist) if applicable. Add `## Decisions taken without asking` if any autonomous scope calls were made. Add `## Mistakes found during self-testing` if applicable.
+
+- **Screenshots for frontend PRs.** If the PR includes visible UI changes, add before/after screenshots to the PR description. Put screenshots in a `screenshots` branch in a folder named after the PR ID, and display them as `![<image name>](https://github.com/<owner>/<repository-name>/blob/screenshots/<pr-id>/<image-name>.png?raw=true)`. Determine `<owner>/<repository-name>` from the Git remote where you push the screenshots branch; inspect `git remote -v`. If you deem understanding the work as a human significantly easier by there being a descriptive image (a diagram, a figure or a graph of any kind), you are also encouraged to include such in the PR body.
+- **Include harness and session ID in every PR description.** Before creating a PR, get the current agent harness session ID. Add it as a footer line in the PR body: `Harness: <harness-name>. Session: <session-id>`. For provenance.

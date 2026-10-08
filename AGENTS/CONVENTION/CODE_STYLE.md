@@ -1,7 +1,5 @@
 # Code style
 
-Read before editing Python code. Follow nearby maintained code and the project's configured formatting and linting tools; avoid unrelated formatting changes.
-
 - Use explicit imports and type hints on function signatures. Reuse project types for structured inputs and outputs.
 - Write docstrings that explain units, shapes, side effects, and non-obvious behavior. Keep simple helpers concise.
 - Keep reusable model and data logic in the Python package. Keep orchestration in scripts and exploration in notebooks; see [Common patterns](COMMON_PATTERNS.md).

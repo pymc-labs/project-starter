@@ -1,7 +1,5 @@
 # Data processing and integrity
 
-Read when changing loading, transformations, joins, missing values, or data splits.
-
 - Establish the input grain, keys, units, date cadence, and required columns before transforming data. Parse dates explicitly and preserve coordinate alignment.
 - Check key uniqueness and expected join cardinality. Compare row counts and relevant totals before and after joins or aggregation so duplication and loss are visible.
 - Distinguish missing observations from observed zeroes. Define missing-value handling for each variable; do not fill every numeric null with zero.

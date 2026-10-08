@@ -1,7 +1,5 @@
 # Modeling and evaluation
 
-Read before building, fitting, comparing, or interpreting models.
-
 - Establish the question, target units, training scope, and intended use before changing a model. Preserve parameter and prior meanings unless the task calls for an intentional change.
 - Validate data, resolved configuration, and model construction before expensive computation. Start with a small smoke run, then increase effort as diagnostics and the task justify it.
 - Record the code revision, data identity, effective configuration, random seeds where applicable, environment, and artifact location. Use a saved model's inputs and configuration to explain it; today's defaults may differ.
