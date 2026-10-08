@@ -153,7 +153,7 @@ def test_guided_context_and_readme_choices(
     run_setup(project, env, [*answers, readme, "n"])
 
     assert_context(project, context == "y")
-    assert_decision_hub(project, hub == "y")
+    assert_decision_hub(project, hub in ("y", ""))
     assert not (project / "pixi.lock").exists()
     assert not command_log.exists()
     readme_path = project / "README.md"
@@ -170,23 +170,31 @@ def test_guided_context_and_readme_choices(
         assert not (project / "scripts").exists()
 
 
-def test_recommended_setup_keeps_context(starter_copy):
+def test_recommended_setup_keeps_context_and_decision_hub(
+    starter_copy: tuple[Path, dict[str, str], Path],
+) -> None:
     project, env, command_log = starter_copy
     run_setup(project, env, ["", "n"])
 
     assert_context(project, True)
     assert (project / "pixi.lock").read_text() == "# Fresh project lock\n"
-    assert_decision_hub(project, False)
+    assert_decision_hub(project, True)
     assert "[AGENTS.md](AGENTS.md)" in (project / "README.md").read_text()
-    assert command_log.read_text().splitlines() == ["install", "r pre-commit install"]
+    assert command_log.read_text().splitlines() == [
+        "install",
+        "install -e decision-hub",
+        "r pre-commit install",
+    ]
 
 
-def test_guided_context_defaults_to_yes(starter_copy):
+def test_guided_context_and_decision_hub_default_to_yes(
+    starter_copy: tuple[Path, dict[str, str], Path],
+) -> None:
     project, env, _ = starter_copy
     run_setup(project, env, ["n", "n", "", "", "y", "n"])
 
     assert_context(project, True)
-    assert_decision_hub(project, False)
+    assert_decision_hub(project, True)
 
 
 @pytest.mark.parametrize(("context", "hub"), [("y", "y"), ("y", "n"), ("n", None)])

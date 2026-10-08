@@ -94,8 +94,7 @@ if [ "${use_opinionated_setup}" = "y" ]; then
     install_hooks="y"
     create_readme="y"
     persistent_agent_context="y"
-    decision_hub="n"
-    echo "  Decision Hub is off by default; choose guided setup to enable it."
+    decision_hub="y"
 else
     echo -e "\n\033[33mℹ You will be prompted for each option during the setup.\033[0m"
 
@@ -168,7 +167,7 @@ if [ "${persistent_agent_context}" = "y" ]; then
     if [ -z "$decision_hub" ]; then
         echo "  Decision Hub finds and downloads agent skills. Public skills need no account."
         echo "  Enable its CLI in a separate Pixi environment, with instructions in AGENTS/."
-        prompt_yes_no "Decision Hub" "Do you want to include Decision Hub (dhub)?" decision_hub n
+        prompt_yes_no "Decision Hub" "Do you want to include Decision Hub (dhub)?" decision_hub
     fi
 else
     decision_hub="n"

@@ -13,7 +13,7 @@ However, this chaos can be mitigated with some decent guardrails. This **project
 - 🧪 **`pytest`** for testing. Meanwhile, with `beartype` handling type checks, tests do not have to assert types, and can merely focus on whether the actual logic works.
 - 🔄 **Github Actions** for running the pre-commit checks on each PR, automated testing and dependency management (dependabot).
 - 🧠 **Persistent agent context** for shared workflow rules and continuity between agent sessions, included by default and optional during guided setup.
-- 🧰 **[Decision Hub](https://hub.decision.ai/)** for finding agent skills, available as an optional CLI during guided setup.
+- 🧰 **[Decision Hub](https://hub.decision.ai/)** for finding agent skills, included by default with persistent agent context and optional during guided setup.
 
 ## Usage
 
@@ -74,7 +74,7 @@ The session files contain instructions and entry formats, with no inherited proj
 
 ### Optional Decision Hub
 
-Choose guided setup, keep persistent agent context, then enable Decision Hub. It is off by default, including in recommended setup. This keeps `dhub-cli` in a separate `decision-hub` Pixi environment and links [agent instructions](AGENTS/CONVENTION/DECISION_HUB.md) from `AGENTS.md`. Declining removes its configuration and instructions from the generated project.
+Decision Hub is included by default whenever persistent agent context is enabled, including in recommended setup. Guided setup lets you decline Decision Hub while keeping agent context. When enabled, `dhub-cli` runs in a separate `decision-hub` Pixi environment, with [agent instructions](AGENTS/CONVENTION/DECISION_HUB.md) linked from `AGENTS.md`. Declining Decision Hub or agent context removes its configuration and instructions from the generated project.
 
 ```sh
 pixi run -e decision-hub dhub ask "Bayesian modeling with PyMC"
