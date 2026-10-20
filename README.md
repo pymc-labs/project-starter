@@ -72,6 +72,20 @@ scripts/                   Maintained workflows (guide only initially)
 
 The session files contain instructions and entry formats, with no inherited project history. After initialization, replace the project description in `AGENTS.md` and let the context grow from actual work. Keep new conventions broadly useful, add implementation references only when needed, and keep resolved quirks and deferred tasks up to date. No skills are bundled.
 
+#### Included agent workflows
+
+The context gives agents concrete instructions for day-to-day work:
+
+- **[Self-review and repair](AGENTS/CONVENTION/GIT_WORKFLOW.md#build-test-fix-learn):** implement the change, exercise the affected workflow, fix problems, rerun relevant checks, and record useful lessons.
+- **[Screenshots in UI PRs](AGENTS/CONVENTION/GIT_WORKFLOW.md#pull-requests):** include before/after screenshots for visible UI changes, stored on a `screenshots` branch and embedded in the PR description.
+- **[PR summaries and evidence](AGENTS/CONVENTION/GIT_WORKFLOW.md#pull-requests):** explain the change, check off only verified test-plan items, disclose autonomous scope decisions and mistakes found during self-testing, and include the agent harness and session ID.
+- **[Continuity between sessions](AGENTS.md#maintaining-context):** read relevant context and open issues, update the owning documents as work proceeds, and keep changelog entries, quirks, deferred work, and lessons useful for the next session.
+- **[Reproducible commands](AGENTS/CONVENTION/ENVIRONMENT.md):** run project Python through Pixi, update dependencies deliberately, and verify imported package paths and revisions when compatibility matters.
+- **[Data integrity checks](AGENTS/CONVENTION/DATA_PROCESSING.md):** verify keys, join cardinality, row counts, units, and missing values; preserve raw inputs and check for leakage between training and evaluation data.
+- **[Model validation in stages](AGENTS/CONVENTION/MODELING.md):** check data and configuration before expensive runs, start with a small smoke run, record inputs and settings, and assess diagnostics and predictive checks before claiming model quality.
+- **[Scripts and experiments](AGENTS/CONVENTION/COMMON_PATTERNS.md#script-placement):** separate maintained commands, preserved reference analyses, and ignored scratch work; promote useful experiments into supported workflows with documentation and verification.
+- **[Clear handoffs](AGENTS.md#writing-for-humans):** report where the work landed, what was verified, material limitations, any next action, and the Git status, with links to the relevant work.
+
 ### Optional Decision Hub
 
 Decision Hub is included by default whenever persistent agent context is enabled, including in recommended setup. Guided setup lets you decline Decision Hub while keeping agent context. When enabled, `dhub-cli` runs in a separate `decision-hub` Pixi environment, with [agent instructions](AGENTS/CONVENTION/DECISION_HUB.md) linked from `AGENTS.md`. Declining Decision Hub or agent context removes its configuration and instructions from the generated project.
