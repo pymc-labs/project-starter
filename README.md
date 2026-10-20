@@ -12,8 +12,8 @@ However, this chaos can be mitigated with some decent guardrails. This **project
 - 🏷️ **`beartype`** for runtime type checking. If you know what's going in and out of functions just by reading the code, then it's easier to debug. And if these types are even enforced at runtime with tools like `beartype`, then there's a whole class of bugs that can never enter your code.
 - 🧪 **`pytest`** for testing. Meanwhile, with `beartype` handling type checks, tests do not have to assert types, and can merely focus on whether the actual logic works.
 - 🔄 **Github Actions** for running the pre-commit checks on each PR, automated testing and dependency management (dependabot).
-- 🧠 **Persistent agent context** for shared workflow rules and continuity between agent sessions, included by default and optional during guided setup.
-- 🧰 **[Decision Hub](https://hub.decision.ai/)** for finding agent skills, included by default with persistent agent context and optional during guided setup.
+- 🧠 **Persistent agent context** so agents can look up how you work and leave notes for the next session. You shouldn't have to explain the same things every time.
+- 🧰 **[Decision Hub](https://hub.decision.ai/)** for finding skills that help agents with things like PyMC modeling. Add the ones that are useful for your project.
 
 ## Usage
 
@@ -26,7 +26,7 @@ and then have a script that imports from `package_name` and runs the model,
 e.g. in a `scripts/run_model.py` file,
 or a notebook in `notebooks/`.
 
-Enabling persistent agent context also keeps the [scripts scaffold](scripts/README.md): a home for maintained commands, with [ad hoc directories](scripts/.adhoc/README.md) for tracked reference analyses and ignored scratch work.
+If you keep the agent context, you also get a [scripts directory](scripts/README.md) with [a place for one-off analyses and experiments](scripts/.adhoc/README.md). Those tend to accumulate, so it's nice to give them somewhere to go.
 
 ### Prerequisites
 
@@ -39,62 +39,70 @@ Enabling persistent agent context also keeps the [scripts scaffold](scripts/READ
 2. Git clone the new repository to your local machine.
 3. Run the setup script `bash setup.sh` and follow the instructions.
 
-Setup derives the Python package name from the local project directory, replacing hyphens with underscores. If that name conflicts with an existing top-level path (ignoring letter case), such as `scripts` or `AGENTS`, setup stops before changing files. Rename the local project directory and rerun setup. Keeping the original `package_name` is also supported.
+Your project directory gives the Python package its name: `my-project` becomes `my_project`. Avoid names already used at the top level, such as `scripts` or `AGENTS` (capitalization doesn't help). If there's a clash, setup asks you to rename the directory and try again, without changing any files. Leaving it as `package_name` works too.
 
 <video src="https://github.com/user-attachments/assets/4a1ab682-bdc6-4ac9-90ad-013157c1128d" controls></video>
 
 ### Dependency versions
 
-The starter commits `pixi.lock` so its own checks use reproducible dependencies. A requirement such as `pymc = "*"` allows any compatible version, but installation reuses the version in the lockfile.
+We keep a `pixi.lock` in this template so its tests run with the same dependencies each time. That also means `pymc = "*"` still installs the version in the lockfile.
 
-Setup removes the inherited lockfile and resolves current compatible versions for the new project. If you skip installation, run `pixi install` before committing. If installation fails, setup keeps the configured project and prints the commands to retry. Commit the newly generated `pixi.lock` with `pyproject.toml` so collaborators and CI use the same versions. After initialization, update dependencies deliberately with Pixi; do not routinely delete the lockfile. See [Pixi's lockfile documentation](https://pixi.prefix.dev/latest/workspace/lock_file/).
+Your new project should get its own lockfile. Setup removes the template's copy and lets Pixi find current versions that work together. If you skip installation, run `pixi install` before you commit. If installation fails, your files are kept and setup tells you how to retry.
+
+Commit the new `pixi.lock` along with `pyproject.toml`, so everyone working on the project gets the same versions. After that, use Pixi to update dependencies and commit the lockfile changes too. [Pixi's docs](https://pixi.prefix.dev/latest/workspace/lock_file/) explain how this works.
 
 ### Persistent agent context
 
-The starter includes a small, agent-maintained context structure. The recommended setup keeps it; choose guided setup to opt out. Opting out removes the context and scripts scaffolds and their entries in the generated README, preserving any skills or scripts you have added.
+A new agent session shouldn't mean explaining the whole project again. The template comes with an [AGENTS.md](AGENTS.md) and a few files where agents can look up how you work, what has changed, and what still needs doing.
+
+This is included by default. If you don't want it, choose guided setup and say no to agent context. Setup removes the context files and scripts guides, along with their README sections. Any scripts or skills you've already added stay.
 
 ```text
-AGENTS.md                  Agent entry point and task guidance
+AGENTS.md                  Where agents start
 AGENTS/
-  CONVENTION/              Durable workflow and data science rules
-  REFERENCE/               Current implementation descriptions (purpose note only)
-  CHANGELOG.md             Useful changes and validation
-  QUIRKS.md                Current debugging traps
-  DEFERRED.md              Concrete unfinished work
-  AGENT_MISTAKES.md         Lessons and verified fixes
-.agents/skills/.gitkeep     Empty home for future project skills
-scripts/                   Maintained workflows (guide only initially)
-  .adhoc/reference/        Preserved analyses (.gitkeep only initially)
-  .adhoc/scratch/          Ignored experiments (.gitkeep tracked)
+  CONVENTION/              How we want to work
+  REFERENCE/               How this project works
+  CHANGELOG.md             What changed and why
+  QUIRKS.md                Things that can trip you up
+  DEFERRED.md              Work to come back to
+  AGENT_MISTAKES.md         Mistakes worth learning from
+.agents/skills/            Skills you choose to add
+scripts/                   Scripts you run regularly
+  .adhoc/reference/        One-off analyses worth keeping
+  .adhoc/scratch/          Experiments you don't need in Git
 ```
 
-[AGENTS.md](AGENTS.md) tells agents which context to read and when to update it. Conventions cover the environment, code, scripts and experiments, data integrity, modeling, testing, and Git workflow. References describe what the code currently does; they do not turn bugs into requirements.
+[AGENTS.md](AGENTS.md) points agents to the files they need for the task and asks them to keep those files up to date. The conventions say how we want to work; references explain how the project currently works.
 
-The session files contain instructions and entry formats, with no inherited project history. After initialization, replace the project description in `AGENTS.md` and let the context grow from actual work. Keep new conventions broadly useful, add implementation references only when needed, and keep resolved quirks and deferred tasks up to date. No skills are bundled.
+After setup, replace the project description in `AGENTS.md`. The notes and directories start with instructions and placeholders, and agents add to them as the project develops. No skills are bundled.
 
-#### Included agent workflows
+#### What agents are asked to do
 
-The context gives agents concrete instructions for day-to-day work:
+There are instructions for some things you probably want agents to do without having to ask every time:
 
-- **[Self-review and repair](AGENTS/CONVENTION/GIT_WORKFLOW.md#build-test-fix-learn):** implement the change, exercise the affected workflow, fix problems, rerun relevant checks, and record useful lessons.
-- **[Screenshots in UI PRs](AGENTS/CONVENTION/GIT_WORKFLOW.md#pull-requests):** include before/after screenshots for visible UI changes, stored on a `screenshots` branch and embedded in the PR description.
-- **[PR summaries and evidence](AGENTS/CONVENTION/GIT_WORKFLOW.md#pull-requests):** explain the change, check off only verified test-plan items, disclose autonomous scope decisions and mistakes found during self-testing, and include the agent harness and session ID.
-- **[Continuity between sessions](AGENTS.md#maintaining-context):** read relevant context and open issues, update the owning documents as work proceeds, and keep changelog entries, quirks, deferred work, and lessons useful for the next session.
-- **[Reproducible commands](AGENTS/CONVENTION/ENVIRONMENT.md):** run project Python through Pixi, update dependencies deliberately, and verify imported package paths and revisions when compatibility matters.
-- **[Data integrity checks](AGENTS/CONVENTION/DATA_PROCESSING.md):** verify keys, join cardinality, row counts, units, and missing values; preserve raw inputs and check for leakage between training and evaluation data.
-- **[Model validation in stages](AGENTS/CONVENTION/MODELING.md):** check data and configuration before expensive runs, start with a small smoke run, record inputs and settings, and assess diagnostics and predictive checks before claiming model quality.
-- **[Scripts and experiments](AGENTS/CONVENTION/COMMON_PATTERNS.md#script-placement):** separate maintained commands, preserved reference analyses, and ignored scratch work; promote useful experiments into supported workflows with documentation and verification.
-- **[Clear handoffs](AGENTS.md#writing-for-humans):** report where the work landed, what was verified, material limitations, any next action, and the Git status, with links to the relevant work.
+- [Test their own work](AGENTS/CONVENTION/GIT_WORKFLOW.md#build-test-fix-learn). Try the thing you'll actually use, fix whatever breaks, and try again. Mistakes worth remembering get written down for the next session.
+- [Put screenshots in PRs](AGENTS/CONVENTION/GIT_WORKFLOW.md#pull-requests). If the UI changes, include before and after pictures so you can see what you're reviewing.
+- [Explain their PRs](AGENTS/CONVENTION/GIT_WORKFLOW.md#pull-requests). What changed, why, what was tested, and any decisions or mistakes you should know about. Include the agent harness and session ID too, so you can trace where the work came from.
+- [Leave notes for the next session](AGENTS.md#maintaining-context). Keep track of what changed, what's unfinished, and anything surprising. Update old notes once they no longer apply.
+- [Use the project's environment](AGENTS/CONVENTION/ENVIRONMENT.md). Run Python through Pixi so tests and analyses use the project's dependencies.
+- [Check what happened to the data](AGENTS/CONVENTION/DATA_PROCESSING.md). Check that joins haven't duplicated rows, missing values haven't silently become zeroes, and test data hasn't slipped into training.
+- [Start with a small model run](AGENTS/CONVENTION/MODELING.md). Check the data and settings before spending time on a long fit. Then look at diagnostics and predictive checks. A model can run successfully and still be a bad model.
+- [Give experiments somewhere to go](AGENTS/CONVENTION/COMMON_PATTERNS.md#script-placement). One-off analyses go in `scripts/.adhoc/`, with separate places for scratch work and things worth keeping. Code you plan to reuse belongs in the package or maintained scripts.
+- [Tell you how it went](AGENTS.md#writing-for-humans). Say what was done, what was checked, and what still needs your attention. Include links and say whether the work is committed, pushed or merged.
 
 ### Optional Decision Hub
 
-Decision Hub is included by default whenever persistent agent context is enabled, including in recommended setup. Guided setup lets you decline Decision Hub while keeping agent context. When enabled, `dhub-cli` runs in a separate `decision-hub` Pixi environment, with [agent instructions](AGENTS/CONVENTION/DECISION_HUB.md) linked from `AGENTS.md`. Declining Decision Hub or agent context removes its configuration and instructions from the generated project.
+Sometimes an agent needs more specific instructions, e.g. for building a PyMC model or working with PyMC-Marketing. [Decision Hub](https://hub.decision.ai/) is a place to find those skills. You can search and download public skills without an account or API key.
+
+It's included by default with agent context. Guided setup lets you turn it off while keeping the rest. Turning off agent context removes Decision Hub too.
+
+The command-line tool, `dhub`, runs in its own Pixi environment:
 
 ```sh
 pixi run -e decision-hub dhub ask "Bayesian modeling with PyMC"
 ```
 
-Public skill discovery and downloads need no account or API key. Setup installs only the CLI; agents can then select skills that fit the task and installed library versions. No skills are downloaded and no user-wide agent settings are changed during setup. If you defer environment installation, `pixi run -e decision-hub ...` installs the CLI on first use.
+Setup installs the tool. You or your agent choose which skills to add later. The [agent instructions](AGENTS/CONVENTION/DECISION_HUB.md) cover how to find skills, check that they fit your library versions, and share them with the project. If you skipped installation during setup, Pixi installs the tool the first time you use the command above.
 
 ### Philosophy
 

@@ -16,8 +16,8 @@
 - `tests/`: Contains tests for the package
 - `notebooks/`: Contains exploratory code for testing new features
 <!-- agent-context:start -->
-- [`scripts/`](scripts/README.md): Maintained workflow entry points
-- [`scripts/.adhoc/`](scripts/.adhoc/README.md): Preserved reference analyses and ignored scratch work
+- [`scripts/`](scripts/README.md): Scripts you run regularly
+- [`scripts/.adhoc/`](scripts/.adhoc/README.md): One-off analyses and experiments
 <!-- agent-context:end -->
 
 ## Development
@@ -41,39 +41,39 @@ This package has been created with [pymc-labs/project-starter](https://github.co
 2. Run `pixi r test` to run the tests.
 3. Run `pre-commit install` to set up pre-commit hooks.
 
-Commit `pyproject.toml` and the generated `pixi.lock` together. The lockfile records the exact dependency versions shared by collaborators and CI; use Pixi to update them deliberately.
+Commit `pixi.lock` along with `pyproject.toml`, so everyone working on the project gets the same versions. Use Pixi to update dependencies and commit the lockfile changes too.
 <!-- agent-context:start -->
 
 ## Persistent agent context
 
-[AGENTS.md](AGENTS.md) is the entry point for agents. It routes tasks to general workflow conventions and explains how to maintain project context as work proceeds.
+[AGENTS.md](AGENTS.md) tells agents where to look for instructions and notes from earlier sessions. It also asks them to keep those notes up to date, so you don't have to explain the same things every time.
 
-- `AGENTS/CONVENTION/`: stable requirements and decision rules.
-- `AGENTS/REFERENCE/`: descriptions of the current implementation, added as the project develops.
-- `AGENTS/*.md`: changelog, quirks, deferred work, and lessons, initially empty apart from instructions and entry formats.
-- `.agents/skills/`: space for project-specific agent workflows, initially containing only `.gitkeep`.
+- `AGENTS/CONVENTION/`: how we want to work.
+- `AGENTS/REFERENCE/`: how this project works.
+- `AGENTS/*.md`: what changed, what's unfinished, and things worth remembering.
+- `.agents/skills/`: skills you choose to add to the project.
 
-Replace the project description in `AGENTS.md` once the scope is established. Agents should update relevant context during their work and keep implementation references separate from durable requirements.
+Replace the project description in `AGENTS.md`. The notes and directories start with instructions and placeholders, and agents add to them as the project develops. No skills are bundled.
 
-### Included agent workflows
+### What agents are asked to do
 
-The context gives agents concrete instructions for day-to-day work:
+There are instructions for some things you probably want agents to do without having to ask every time:
 
-- **[Self-review and repair](AGENTS/CONVENTION/GIT_WORKFLOW.md#build-test-fix-learn):** implement the change, exercise the affected workflow, fix problems, rerun relevant checks, and record useful lessons.
-- **[Screenshots in UI PRs](AGENTS/CONVENTION/GIT_WORKFLOW.md#pull-requests):** include before/after screenshots for visible UI changes, stored on a `screenshots` branch and embedded in the PR description.
-- **[PR summaries and evidence](AGENTS/CONVENTION/GIT_WORKFLOW.md#pull-requests):** explain the change, check off only verified test-plan items, disclose autonomous scope decisions and mistakes found during self-testing, and include the agent harness and session ID.
-- **[Continuity between sessions](AGENTS.md#maintaining-context):** read relevant context and open issues, update the owning documents as work proceeds, and keep changelog entries, quirks, deferred work, and lessons useful for the next session.
-- **[Reproducible commands](AGENTS/CONVENTION/ENVIRONMENT.md):** run project Python through Pixi, update dependencies deliberately, and verify imported package paths and revisions when compatibility matters.
-- **[Data integrity checks](AGENTS/CONVENTION/DATA_PROCESSING.md):** verify keys, join cardinality, row counts, units, and missing values; preserve raw inputs and check for leakage between training and evaluation data.
-- **[Model validation in stages](AGENTS/CONVENTION/MODELING.md):** check data and configuration before expensive runs, start with a small smoke run, record inputs and settings, and assess diagnostics and predictive checks before claiming model quality.
-- **[Scripts and experiments](AGENTS/CONVENTION/COMMON_PATTERNS.md#script-placement):** separate maintained commands, preserved reference analyses, and ignored scratch work; promote useful experiments into supported workflows with documentation and verification.
-- **[Clear handoffs](AGENTS.md#writing-for-humans):** report where the work landed, what was verified, material limitations, any next action, and the Git status, with links to the relevant work.
+- [Test their own work](AGENTS/CONVENTION/GIT_WORKFLOW.md#build-test-fix-learn). Try the thing you'll actually use, fix whatever breaks, and try again. Mistakes worth remembering get written down for the next session.
+- [Put screenshots in PRs](AGENTS/CONVENTION/GIT_WORKFLOW.md#pull-requests). If the UI changes, include before and after pictures so you can see what you're reviewing.
+- [Explain their PRs](AGENTS/CONVENTION/GIT_WORKFLOW.md#pull-requests). What changed, why, what was tested, and any decisions or mistakes you should know about. Include the agent harness and session ID too, so you can trace where the work came from.
+- [Leave notes for the next session](AGENTS.md#maintaining-context). Keep track of what changed, what's unfinished, and anything surprising. Update old notes once they no longer apply.
+- [Use the project's environment](AGENTS/CONVENTION/ENVIRONMENT.md). Run Python through Pixi so tests and analyses use the project's dependencies.
+- [Check what happened to the data](AGENTS/CONVENTION/DATA_PROCESSING.md). Check that joins haven't duplicated rows, missing values haven't silently become zeroes, and test data hasn't slipped into training.
+- [Start with a small model run](AGENTS/CONVENTION/MODELING.md). Check the data and settings before spending time on a long fit. Then look at diagnostics and predictive checks. A model can run successfully and still be a bad model.
+- [Give experiments somewhere to go](AGENTS/CONVENTION/COMMON_PATTERNS.md#script-placement). One-off analyses go in `scripts/.adhoc/`, with separate places for scratch work and things worth keeping. Code you plan to reuse belongs in the package or maintained scripts.
+- [Tell you how it went](AGENTS.md#writing-for-humans). Say what was done, what was checked, and what still needs your attention. Include links and say whether the work is committed, pushed or merged.
 <!-- decision-hub:start -->
 
 ### Decision Hub
 
-The optional `decision-hub` Pixi environment provides the `dhub` CLI for finding and downloading agent skills. Public skills need no account or API key. Run `pixi run -e decision-hub dhub --help` to get started; Pixi installs the environment on first use if needed.
+You can use [Decision Hub](https://hub.decision.ai/) to find skills for things like PyMC modeling. Public skills need no account or API key. Run `pixi run -e decision-hub dhub --help` to get started. Pixi installs the tool on first use if you skipped installation during setup.
 
-See [Decision Hub guidance](AGENTS/CONVENTION/DECISION_HUB.md) for discovery, version compatibility, and sharing selected skills in this project. Setup does not install any skills or change user-wide agent settings.
+Setup installs the tool. You or your agent choose which skills to add later. The [agent instructions](AGENTS/CONVENTION/DECISION_HUB.md) cover how to find skills, check that they fit your library versions, and share them with the project.
 <!-- decision-hub:end -->
 <!-- agent-context:end -->
