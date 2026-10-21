@@ -1,14 +1,14 @@
 # package_name
 
-*Description of the project/package. Make it super easy for people to understand what it does. Add links to external resources like Notion, SOWs, etc.if needed.*
+*TEMPLATE: Description of the project/package. Make it super easy for people to understand what it does. Add links to external resources like Notion, SOWs, etc. if needed.*
 
 ## Features
 
-*Bullet form list of the most important features of the project/package.*
+*TEMPLATE: Bullet form list of the most important features of the project/package.*
 
 ## Usage
 
-*How to use `package_name`. Include examples and code snippets.*
+*TEMPLATE: How to use `package_name`. Include examples and code snippets.*
 
 ## Project Structure
 
@@ -53,7 +53,7 @@ Commit `pixi.lock` along with `pyproject.toml`, so everyone working on the proje
 - `AGENTS/*.md`: what changed, what's unfinished, and things worth remembering.
 - `.agents/skills/`: skills you choose to add to the project.
 
-Replace the project description in `AGENTS.md`. The notes and directories start with instructions and placeholders, and agents add to them as the project develops. No skills are bundled.
+The first agent session in the project fills in the placeholders, like the project description here and in `AGENTS.md`, and asks you about anything it can't work out. The notes and directories start out empty apart from instructions, and agents add to them as the project develops. No skills are bundled.
 
 ### What agents are asked to do
 

@@ -5,6 +5,8 @@ The initializer removes this file from generated projects along with setup.sh.
 
 import os
 from pathlib import Path
+import re
+import shlex
 import shutil
 import subprocess
 import tomllib
@@ -168,6 +170,37 @@ def test_guided_context_and_readme_choices(
     if context == "n":
         assert not (project / ".agents").exists()
         assert not (project / "scripts").exists()
+
+
+@pytest.mark.parametrize(("context", "readme"), [("y", "y"), ("y", "n"), ("n", "y")])
+def test_first_agent_session_finds_every_placeholder(
+    starter_copy: tuple[Path, dict[str, str], Path], context: str, readme: str
+) -> None:
+    project, env, _ = starter_copy
+    answers = ["n", "n", context, *(["y"] if context == "y" else []), readme, "n"]
+    run_setup(project, env, answers)
+
+    marked = {
+        str(path.relative_to(project))
+        for path in project.rglob("*")
+        if ".git" not in path.relative_to(project).parts
+        and path.is_file()
+        and "TEMPLATE:" in path.read_text(errors="ignore")
+    }
+    expected = {"pyproject.toml"}
+    if context == "y":
+        expected.add("AGENTS.md")
+    if readme == "y":
+        expected.add("README.md")
+    assert marked == expected
+    if context == "y":
+        # The first line tells a new agent how to find the placeholders.
+        instruction = (project / "AGENTS.md").read_text().splitlines()[0]
+        command = re.search(r"`(git grep [^`]+)`", instruction).group(1)
+        found = subprocess.run(
+            shlex.split(command), cwd=project, capture_output=True, text=True
+        ).stdout
+        assert {line.split(":", 1)[0] for line in found.splitlines()} == marked
 
 
 def test_recommended_setup_keeps_context_and_decision_hub(

@@ -74,7 +74,9 @@ scripts/                   Scripts you run regularly
 
 [AGENTS.md](AGENTS.md) points agents to the files they need for the task and asks them to keep those files up to date. The conventions say how we want to work; references explain how the project currently works.
 
-After setup, replace the project description in `AGENTS.md`. The notes and directories start with instructions and placeholders, and agents add to them as the project develops. No skills are bundled.
+You don't have to fill in the placeholders yourself. Lines like the project description in `README.md`, `AGENTS.md` and `pyproject.toml` are marked `TEMPLATE:`, and `AGENTS.md` tells the first agent you start in the new project to find them, work out what the project is about, and replace them with what's actually true. It'll ask you about whatever it can't figure out. The example code isn't marked, so replace that as you build the real thing.
+
+The notes and directories start out empty apart from instructions, and agents add to them as the project develops. No skills are bundled.
 
 #### What agents are asked to do
 

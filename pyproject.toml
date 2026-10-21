@@ -1,7 +1,7 @@
 [project]
 authors = [{name = "pymc-labs", email = "info@pymc-labs.com"}]
 dependencies = []
-description = "Add a short description here"
+description = "TEMPLATE: Add a short description here"
 name = "package_name"
 requires-python = ">= 3.11"
 version = "0.1.0"

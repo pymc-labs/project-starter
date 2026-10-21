@@ -1,6 +1,13 @@
+<!-- starter-only:start -->
+
+While `setup.sh` is present, this repository is the starter itself, not a project created from it. Keep the reference and session files as empty templates, and leave every line marked `TEMPLATE:` as it is, including the first-session instruction below: they are placeholders for the first agent session in each new project. Setup removes this note.
+
+<!-- starter-only:end -->
+TEMPLATE: **First session.** No agent has worked in this project yet. Before the requested task, find out what the project is about and replace the template placeholders with true information. List them with `git grep -n --untracked 'TEMPLATE:'`; each matching line is a placeholder. Learn about the project from the repository, its Git history and remotes, linked documents, and the human; the example package, tests, and notebook come from the starter and say nothing about the project. Ask the human about anything you cannot establish, and never invent project facts. Replace each marked line with what is true, or delete it when nothing is true yet. Delete this paragraph last, when the command above finds nothing else. If the human asks you to skip this, do the requested task and leave the markers for the next session.
+
 # About this project
 
-This is a data science project based on the PyMC Labs project starter. Replace this paragraph with the project's purpose and scope once they are established; do not infer them from the example package.
+TEMPLATE: Describe the project's purpose and scope: who it is for, the questions it answers, its data, and its deliverables.
 
 # Persistent context
 
@@ -61,11 +68,6 @@ Maintaining relevant context is part of the task, not a separate handoff to the 
 2. Implement the requested change, then exercise the behavior the human will use. Follow the [build-test-fix-learn cycle](AGENTS/CONVENTION/GIT_WORKFLOW.md#build-test-fix-learn) and [testing rules](AGENTS/CONVENTION/TESTING.md).
 3. Before expensive model runs, validate data and configuration and start with a small smoke run. Increase compute only when the task and diagnostics justify it; a successful short run does not establish model validity.
 4. Update relevant context during the same task, then report the outcome following [Writing for humans](#writing-for-humans).
-<!-- starter-only:start -->
-
-While `setup.sh` is present, this repository is still a starter: keep the reference and session files as empty templates. Once setup removes it, populate them from actual project work and replace the project description when its purpose is established.
-
-<!-- starter-only:end -->
 
 # About the humans
 
