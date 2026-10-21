@@ -2,7 +2,7 @@
 This module defines custom types.
 
 These types are used to ensure type safety and provide clear structure for the
-synthetic consumer generation and questionnaire processes.
+data passed between functions.
 
 When passing nested data structures through functions, consider creating a
 type here and importing it in the module where it's used. This makes the code
