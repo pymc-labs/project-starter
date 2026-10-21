@@ -90,7 +90,7 @@ There are instructions for some things you probably want agents to do without ha
 - [Check what happened to the data](AGENTS/CONVENTION/DATA_PROCESSING.md). Check that joins haven't duplicated rows, missing values haven't silently become zeroes, and test data hasn't slipped into training.
 - [Start with a small model run](AGENTS/CONVENTION/MODELING.md). Check the data and settings before spending time on a long fit. Then look at diagnostics and predictive checks. A model can run successfully and still be a bad model.
 - [Put throwaway scripts in a throwaway place](AGENTS/CONVENTION/COMMON_PATTERNS.md#script-placement). One-off analyses performed by agents go in `scripts/.adhoc/`, so it doesn't mix with for example reusable pipeline scripts.
-- [Talk to you in a consistent way](AGENTS.md#writing-for-humans). Structure the end message not as a fucking wall of text, but following a standardized template you can understand immediately: what was done, what needs attention, what are next steps, include links and say whether the work is committed, pushed or merged (plus a timestamp).
+- [Talk to you in a consistent way](AGENTS.md#writing-for-humans). Structure the end message not as the default wall of text, but following a standardized template you can understand immediately: what was done, what needs attention, what are next steps, include links and say whether the work is committed, pushed or merged (plus a timestamp).
 
 ### Optional Decision Hub
 
