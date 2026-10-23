@@ -12,7 +12,8 @@ However, this chaos can be mitigated with some decent guardrails. This **project
 - 🏷️ **`beartype`** for runtime type checking. If you know what's going in and out of functions just by reading the code, then it's easier to debug. And if these types are even enforced at runtime with tools like `beartype`, then there's a whole class of bugs that can never enter your code.
 - 🧪 **`pytest`** for testing. Meanwhile, with `beartype` handling type checks, tests do not have to assert types, and can merely focus on whether the actual logic works.
 - 🔄 **Github Actions** for running the pre-commit checks on each PR, automated testing and dependency management (dependabot).
-- 🧠 **Persistent agent context** so agents can look up how you work and leave notes for the next session. You shouldn't have to explain the same things every time.
+- 🧠 **Project knowledge in [prok](https://github.com/pymc-labs/prok)**. What the project decides and finds out lives in one graph on PyMC Labs' Google Cloud, shared by everyone on the project and all their agents, whichever harness they use. You shouldn't have to explain the same things every time.
+- 🤝 **One set of agent instructions** for the whole team, so agents test their own work, explain their PRs and check what happened to the data, whoever runs them.
 - 🧰 **[Decision Hub](https://hub.decision.ai/)** for finding skills that help agents with things like PyMC modeling. Add the ones that are useful for your project.
 
 ## Usage
@@ -26,12 +27,13 @@ and then have a script that imports from `package_name` and runs the model,
 e.g. in a `scripts/run_model.py` file,
 or a notebook in `notebooks/`.
 
-If you keep the agent context, you also get a [scripts directory](scripts/README.md) with [a place for one-off analyses and experiments](scripts/.adhoc/README.md). Those tend to accumulate, so it's nice to give them somewhere to go.
+One-off analyses and experiments go in `scripts/.adhoc/`, which Git ignores. Those tend to accumulate, so it's nice to give them somewhere to go.
 
 ### Prerequisites
 
 - Python 3.11 or higher
 - [Pixi package manager](https://pixi.sh/latest/)
+- For prok: Node 24 or later (`brew install node`), the [GitHub CLI](https://cli.github.com/) logged in with your PyMC Labs GitHub account, and [gcloud](https://cloud.google.com/sdk/docs/install) for logging in with your PyMC Labs Google account. Setup installs prok itself if it's missing.
 
 ### Get started
 
@@ -39,7 +41,7 @@ If you keep the agent context, you also get a [scripts directory](scripts/README
 2. Git clone the new repository to your local machine.
 3. Run the setup script `bash setup.sh` and follow the instructions.
 
-Your project directory gives the Python package its name: `my-project` becomes `my_project`. Avoid names already used at the top level, such as `scripts` or `AGENTS` (capitalization doesn't help). If there's a clash, setup asks you to rename the directory and try again, without changing any files. Leaving it as `package_name` works too.
+Your project directory gives the Python package its name: `my-project` becomes `my_project`. Avoid names already used at the top level, such as `tests` or `notebooks` (capitalization doesn't help). If there's a clash, setup asks you to rename the directory and try again, without changing any files. Leaving it as `package_name` works too.
 
 <video src="https://github.com/user-attachments/assets/4a1ab682-bdc6-4ac9-90ad-013157c1128d" controls></video>
 
@@ -51,52 +53,52 @@ Your new project should get its own lockfile. Setup removes the template's copy 
 
 Commit the new `pixi.lock` along with `pyproject.toml`, so everyone working on the project gets the same versions. After that, use Pixi to update dependencies and commit the lockfile changes too. [Pixi's docs](https://pixi.prefix.dev/latest/workspace/lock_file/) explain how this works.
 
-### Persistent agent context
+### Project knowledge with prok
 
-A new agent session shouldn't mean explaining the whole project again. The template comes with an [AGENTS.md](AGENTS.md) and a few files where agents can look up how you work, what has changed, and what still needs doing.
+A project decides things all the time: in PRs, in meetings, in chat, in the head of whoever was there. [prok](https://github.com/pymc-labs/prok) writes them down as entries in one graph per project: decisions, facts, conventions, constraints, assumptions and open questions, each with its reason and the files it's about. The graph lives on PyMC Labs' Google Cloud, so everyone on the project sees the same thing, and so do their agents in Claude Code, Codex or opencode.
 
-This is included by default. If you don't want it, choose guided setup and say no to agent context. Setup removes the context files and scripts guides, along with their README sections. Any scripts or skills you've already added stay.
+Setup asks whether you want it (yes by default) and then does the rest:
 
-```text
-AGENTS.md                  Where agents start
-AGENTS/
-  CONVENTION/              How we want to work
-  REFERENCE/               How this project works
-  CHANGELOG.md             What changed and why
-  QUIRKS.md                Things that can trip you up
-  DEFERRED.md              Work to come back to
-  AGENT_MISTAKES.md         Mistakes worth learning from
-.agents/skills/            Skills you choose to add
-scripts/                   Scripts you run regularly
-  .adhoc/reference/        One-off analyses worth keeping
-  .adhoc/scratch/          Experiments you don't need in Git
-```
+1. Installs prok if it's missing.
+2. Runs `prok init`, which adds the plugins for each agent harness, the commit hook, and the pointer to the project in prok's central system.
+3. Logs you in with your PyMC Labs Google account and creates the project in prok, with you as its maintainer. If the project exists already, setup says whom to ask.
+4. Installs the prok plugin for Claude Code on your machine.
 
-[AGENTS.md](AGENTS.md) points agents to the files they need for the task and asks them to keep those files up to date. The conventions say how we want to work; references explain how the project currently works.
+From then on agents start every session with the project's kernel, the entries everyone needs to know. Before they edit a file, they're handed the entries that apply to it. When they decide or find something others need to know, they write an entry on their branch, and it holds once the PR is merged and a maintainer canonizes the branch's world. Nothing is ever lost: an entry that no longer holds gets superseded or retired, and `prok impact <id>` shows what depends on it.
 
-You don't have to fill in the placeholders yourself. Lines like the project description in `README.md`, `AGENTS.md` and `pyproject.toml` are marked `TEMPLATE:`, and `AGENTS.md` tells the first agent you start in the new project to find them, work out what the project is about, and replace them with what's actually true. It'll ask you about whatever it can't figure out. The example code isn't marked, so replace that as you build the real thing.
+Your teammates run `prok init` and `prok login` in their clone, and you add them with `prok group add <project>-team <their mail>`.
 
-The notes and directories start out empty apart from instructions, and agents add to them as the project develops. No skills are bundled.
+You can share one prok project between several repositories, say a model repo and a dashboard repo: choose guided setup and give the name of the existing project.
+
+This replaces the `AGENTS/` folder of changelogs, quirks, deferred tasks and conventions that the template had before. Each of those is an entry type now: a quirk or an agent's mistake is a fact, a deferred task is a question, a convention is a convention. The difference is that entries are searchable by meaning, they know what depends on them, and they reach agents when they're about to touch the files they're about, instead of hoping the agent reads the right file.
+
+If you say no to prok, you get the same agent instructions in a plain `AGENTS.md`.
+
+### Agent instructions
+
+[AGENTS.md](AGENTS.md) holds the instructions all agents on the project share. With prok, they live in `.prok/instructions.md`, and prok generates `AGENTS.md` and `CLAUDE.md` from them along with the project's kernel.
+
+You don't have to fill in the placeholders yourself. Lines like the project description in `README.md`, the agent instructions and `pyproject.toml` are marked `TEMPLATE:`, and the instructions tell the first agent you start in the new project to find them, work out what the project is about, and replace them with what's actually true. It'll ask you about whatever it can't figure out. With prok, it also writes what it learned as the project's first entries. The example code isn't marked, so replace that as you build the real thing.
 
 #### What agents are asked to do
 
 There are instructions for some things you probably want agents to do without having to ask every time:
 
-- [Test their own work](AGENTS/CONVENTION/GIT_WORKFLOW.md#build-test-fix-learn). Try the thing you'll actually use, fix whatever breaks, and try again. Mistakes worth remembering get written down for the next session.
-- [Put screenshots in PRs](AGENTS/CONVENTION/GIT_WORKFLOW.md#pull-requests). If the UI changes, include before and after pictures so you can see what you're reviewing.
-- [Explain their PRs](AGENTS/CONVENTION/GIT_WORKFLOW.md#pull-requests). What changed, why, what was tested, and any decisions or mistakes you should know about. Include the agent harness and session ID too, so you can trace where the work came from.
-- [Leave notes for the next session](AGENTS.md#maintaining-context). Keep track of what changed, what's unfinished, and anything surprising. Update old notes once they no longer apply.
-- [Use the project's environment](AGENTS/CONVENTION/ENVIRONMENT.md). Run Python through Pixi so tests and analyses use the project's dependencies.
-- [Check what happened to the data](AGENTS/CONVENTION/DATA_PROCESSING.md). Check that joins haven't duplicated rows, missing values haven't silently become zeroes, and test data hasn't slipped into training.
-- [Start with a small model run](AGENTS/CONVENTION/MODELING.md). Check the data and settings before spending time on a long fit. Then look at diagnostics and predictive checks. A model can run successfully and still be a bad model.
-- [Put throwaway scripts in a throwaway place](AGENTS/CONVENTION/COMMON_PATTERNS.md#script-placement). One-off analyses performed by agents go in `scripts/.adhoc/`, so it doesn't mix with for example reusable pipeline scripts.
+- [Test their own work](AGENTS.md#how-we-work). Try the thing you'll actually use, fix whatever breaks, and try again.
+- [Put screenshots in PRs](AGENTS.md#how-we-work). If the UI changes, include before and after pictures so you can see what you're reviewing.
+- [Explain their PRs](AGENTS.md#how-we-work). What changed, why, what was tested, and any decisions or mistakes you should know about. Include the agent harness and session ID too, so you can trace where the work came from.
+- [Write down what the next session needs](AGENTS.md#project-knowledge). With prok, as entries; without it, in PRs, issues and the instructions themselves.
+- [Use the project's environment](AGENTS.md#how-we-work). Run Python through Pixi so tests and analyses use the project's dependencies.
+- [Check what happened to the data](AGENTS.md#how-we-work). Check that joins haven't duplicated rows, missing values haven't silently become zeroes, and test data hasn't slipped into training.
+- [Start with a small model run](AGENTS.md#how-we-work). Check the data and settings before spending time on a long fit. Then look at diagnostics and predictive checks. A model can run successfully and still be a bad model.
+- [Put throwaway scripts in a throwaway place](AGENTS.md#how-we-work). One-off analyses performed by agents go in `scripts/.adhoc/`, so they don't mix with for example reusable pipeline scripts.
 - [Talk to you in a consistent way](AGENTS.md#writing-for-humans). Structure the end message not as the default wall of text, but following a standardized template you can understand immediately: what was done, what needs attention, what are next steps, include links and say whether the work is committed, pushed or merged (plus a timestamp).
 
 ### Optional Decision Hub
 
 Sometimes an agent needs more specific instructions, e.g. for building a PyMC model or working with PyMC-Marketing. [Decision Hub](https://hub.decision.ai/) is a place to find those skills. You can search and download public skills without an account or API key.
 
-It's included by default with agent context. Guided setup lets you turn it off while keeping the rest. Turning off agent context removes Decision Hub too.
+It's included by default. Guided setup lets you turn it off.
 
 The command-line tool, `dhub`, runs in its own Pixi environment:
 
@@ -104,7 +106,7 @@ The command-line tool, `dhub`, runs in its own Pixi environment:
 pixi run -e decision-hub dhub ask "Bayesian modeling with PyMC"
 ```
 
-Setup installs the tool. You or your agent choose which skills to add later. The [agent instructions](AGENTS/CONVENTION/DECISION_HUB.md) cover how to find skills, check that they fit your library versions, and share them with the project. If you skipped installation during setup, Pixi installs the tool the first time you use the command above.
+Setup installs the tool. You or your agent choose which skills to add later. The [agent instructions](AGENTS.md#skills-from-decision-hub) cover how to find skills, check that they fit your library versions, and share them with the project. If you skipped installation during setup, Pixi installs the tool the first time you use the command above.
 
 ### Philosophy
 

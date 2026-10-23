@@ -20,3 +20,16 @@ repos:
     hooks:
       - id: codespell
         args: ["--ignore-words=.codespellignore", "--skip=*.ipynb"]
+# prok:start
+
+  # The commit hook of prok: refuses a commit while prok's graph has errors or a constraint is broken.
+  # It does nothing where prok is not installed, such as in CI, or where the repository does not use prok.
+  - repo: local
+    hooks:
+      - id: prok
+        name: prok constraints
+        entry: sh -c '[ -f .prok/central.yaml ] && command -v prok >/dev/null 2>&1 || exit 0; prok validate && prok enforce-constraints'
+        language: system
+        pass_filenames: false
+        always_run: true
+# prok:end
