@@ -124,11 +124,27 @@ install_prok() {
 }
 
 # The repository on GitHub that origin names, as owner/name, or nothing.
-# Any URL of a GitHub host: SSH with a host alias, `ssh://` with a port, HTTPS with a user, a trailing `/` or `.git`.
+# A URL of github.com, with a scheme (HTTPS with a user, `ssh://` with a port) or in SSH's short form, where a host
+# alias such as github-work stands for it; a trailing `/` or `.git` is fine. Local paths and other hosts are none.
 github_repository() {
-    local url owner name
+    local url host owner name
     url=$(git remote get-url origin 2>/dev/null) || return 0
-    case "$url" in *github*) ;; *) return 0 ;; esac
+    case "$url" in
+        /* | .* | '~'* | file:*) return 0 ;;
+        *://*)
+            host="${url#*://}"
+            host="${host%%/*}"
+            host="${host#*@}"
+            host="${host%%:*}"
+            case "$host" in github.com | *.github.com) ;; *) return 0 ;; esac
+            ;;
+        *@*:*)
+            host="${url%%:*}"
+            host="${host#*@}"
+            case "$host" in *github*) ;; *) return 0 ;; esac
+            ;;
+        *) return 0 ;;
+    esac
     url="${url%/}"
     url="${url%.git}"
     name="${url##*/}"

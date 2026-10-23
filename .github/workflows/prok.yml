@@ -26,6 +26,6 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       # Only once setup has connected the project to prok: the first commit of a new repository comes before that.
-      # Dependabot is no person of prok, so there is no world of its own to check.
-      - if: hashFiles('.prok/central.yaml') != '' && github.actor != 'dependabot[bot]'
+      # Dependabot is no person of prok: its pull requests have no world to check.
+      - if: hashFiles('.prok/central.yaml') != '' && github.event.pull_request.user.login != 'dependabot[bot]'
         uses: pymc-labs/prok/ci@v0.1.8

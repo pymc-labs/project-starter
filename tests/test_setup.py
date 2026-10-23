@@ -333,6 +333,8 @@ def test_recommended_setup_connects_the_project_to_prok(
         "https://someone@github.com/pymc-labs/sample-project/",
         "ssh://git@ssh.github.com:443/pymc-labs/sample-project.git",
         "https://gitlab.com/pymc-labs/sample-project.git",
+        "/Users/someone/github/sample-project.git",
+        "https://github.example.com/pymc-labs/sample-project.git",
         None,
     ],
 )
@@ -347,7 +349,7 @@ def test_setup_names_the_repository_as_the_projects_own_for_ci(
     result = run_setup(project, env, ["", "n"])
 
     prok_calls = calls(command_log, "prok")
-    if remote is None or "gitlab" in remote:
+    if remote is None or "github.com" not in remote and "github-work" not in remote:
         assert "No GitHub remote yet" in result.stdout
         assert not any("add-repository" in call for call in prok_calls)
     else:
