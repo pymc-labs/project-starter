@@ -51,10 +51,14 @@ exit_gracefully() {
     if [ "$revert_on_exit" = true ]; then
         echo -e "\n\033[31mAborting Setup:\033[0m"
 
-        # Revert to initial commit
-        echo -e "  Reverting changes to initial commit:"
-        execute_command "git reset --hard $(git rev-list --max-parents=0 HEAD)"
+        # Revert to the commit setup started from
+        echo -e "  Reverting changes to the commit setup started from:"
+        execute_command "git reset --hard $start_head"
         execute_command "git clean -fd"
+        # Git leaves its hooks alone; a commit hook prok wrote during setup goes too.
+        if [ "$had_commit_hook" = n ] && is_prok_hook; then
+            execute_command "rm -f '$commit_hook'"
+        fi
 
         # Remove .pixi directory if it exists
         if [ -d ".pixi" ]; then
@@ -82,6 +86,16 @@ keep_section() {
         sed "\|^$open\$|,\|^$close\$|d" "$file" > "$file.tmp"
     fi
     mv "$file.tmp" "$file"
+}
+
+# Whether the commit hook of this clone is the one prok writes.
+is_prok_hook() {
+    grep -qs '^# Written by prok\.' "$commit_hook"
+}
+
+# The group prok's central system makes for a new project: its name in lower case, `-` for anything else, `-team`.
+prok_team() {
+    printf '%s-team' "$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | sed -e 's/[^a-z0-9-]/-/g' -e 's/^-*//')"
 }
 
 # Says why prok cannot be installed on this machine, or nothing when it can.
@@ -133,14 +147,74 @@ install_claude_plugin() {
     echo "  Start Claude Code again for the plugin to take effect."
 }
 
+# Moves the shared instructions to .prok/instructions.md and runs prok init, which writes the rest. Where prok init
+# fails, everything it and this function changed is undone, so that the project can go on without prok.
+apply_prok() {
+    local backup path created=""
+    backup=$(mktemp -d) || return 1
+    cp AGENTS.md .gitignore template_README.md "$backup/" || return 1
+    [ ! -f .pre-commit-config.yaml ] || cp .pre-commit-config.yaml "$backup/" || return 1
+    for path in .prok .claude .codex .opencode opencode.json .agents CLAUDE.md PROJECT_KNOWLEDGE.md; do
+        [ -e "$path" ] || created="$created $path"
+    done
+    mkdir -p .prok
+    keep_section AGENTS.md prok y
+    keep_section AGENTS.md no-prok n
+    mv AGENTS.md .prok/instructions.md
+    git rm --cached --quiet --ignore-unmatch AGENTS.md
+    keep_section .pre-commit-config.yaml prok y
+    keep_section template_README.md prok y
+    if execute_command "prok init --url '$prok_url' --project '$prok_project'"; then
+        rm -rf "$backup"
+        return 0
+    fi
+    for path in $created; do
+        rm -rf "$path"
+    done
+    cp "$backup/AGENTS.md" "$backup/.gitignore" "$backup/template_README.md" .
+    [ ! -f "$backup/.pre-commit-config.yaml" ] || cp "$backup/.pre-commit-config.yaml" .
+    git reset --quiet -- AGENTS.md
+    if [ "$had_commit_hook" = n ] && is_prok_hook; then
+        rm -f "$commit_hook"
+    fi
+    rm -rf "$backup"
+    return 1
+}
+
+# Asks prok to create the project and says what came of it: a new project, one that exists already, or a refusal.
+create_prok_project() {
+    local said status group
+    echo -e "  \033[36m$ prok project create\033[0m"
+    said=$(prok project create 2>&1)
+    status=$?
+    printf '%s\n' "$said"
+    case "$said" in
+        *"exists already"*)
+            echo -e "  \033[33m⚠ The prok project '$prok_project' existed before this repository, which now shares its knowledge.\033[0m"
+            echo -e "  \033[33m  If it should have a project of its own: prok init --url $prok_url --project <new-name> && prok project create\033[0m"
+            ;;
+    esac
+    [ "$status" -eq 0 ] || return 1
+    # The README names the group the central system made, which differs where the obvious name was taken.
+    group=$(printf '%s\n' "$said" | sed -n 's/.*through the group \([^ ]*\)\.$/\1/p')
+    if [ -n "$group" ] && [ -f README.md ]; then
+        sed "s|prok group add $(prok_team "$prok_project") |prok group add $group |g" README.md > README.md.tmp &&
+            mv README.md.tmp README.md
+    fi
+}
+
 # Connects the new project to the central system of prok. Each step can be retried by hand; none undoes the setup.
+# prok_connected says whether it worked: prok's commit hook refuses commits until it has.
 connect_prok() {
+    prok_connected=n
     echo -e "\n\033[1m== Connect to prok ==\033[0m"
     if ! prok_login; then
         echo -e "  \033[33mℹ Not logged in to prok. Run 'gcloud auth login', then 'prok login' and 'prok project create'.\033[0m"
         return 0
     fi
-    if ! execute_command "prok project create"; then
+    if create_prok_project; then
+        prok_connected=y
+    else
         echo -e "  \033[33mℹ The project was not created. The message above says why.\033[0m"
     fi
     execute_command "prok emit-agent-instructions" ||
@@ -170,6 +244,12 @@ for entry in * .[!.]* ..?*; do
         exit 1
     fi
 done
+
+# What a rollback returns to: the commit setup started from, and whether the clone had a commit hook of its own.
+start_head=$(git rev-parse HEAD)
+commit_hook=$(git rev-parse --git-path hooks/pre-commit)
+had_commit_hook=n
+[ ! -e "$commit_hook" ] || had_commit_hook=y
 
 # Trap to handle cleanup only after validation succeeds.
 trap exit_gracefully SIGINT SIGTERM EXIT
@@ -279,34 +359,6 @@ if [ "${use_prok}" = "y" ] && [ -z "$prok_project" ]; then
     done
 fi
 
-if [ "${use_prok}" = "y" ]; then
-    # prok generates AGENTS.md and CLAUDE.md from the shared instructions, the kernel and personal additions.
-    mkdir -p .prok
-    keep_section AGENTS.md prok y
-    keep_section AGENTS.md no-prok n
-    mv AGENTS.md .prok/instructions.md
-    git rm --cached --quiet --ignore-unmatch AGENTS.md
-    keep_section .pre-commit-config.yaml prok y
-    keep_section template_README.md prok y
-    if ! execute_command "prok init --url '$prok_url' --project '$prok_project'"; then
-        echo "prok could not set up the project. Run 'bash setup.sh' again, or answer no to prok." >&2
-        exit 1
-    fi
-    echo -e "  \033[32m✔ Shared agent instructions are in .prok/instructions.md; prok generates AGENTS.md.\033[0m"
-else
-    keep_section AGENTS.md prok n
-    keep_section AGENTS.md no-prok y
-    keep_section .pre-commit-config.yaml prok n
-    keep_section template_README.md prok n
-    echo -e "  \033[33mℹ Shared agent instructions are in AGENTS.md.\033[0m"
-fi
-
-# The project should not inherit instructions for maintaining the starter.
-instructions=AGENTS.md
-[ "${use_prok}" = "y" ] && instructions=.prok/instructions.md
-sed '/^<!-- starter-only:start -->$/,/^<!-- starter-only:end -->$/d' "$instructions" > "$instructions.tmp" &&
-    mv "$instructions.tmp" "$instructions" || exit 1
-
 # == Decision Hub ==
 
 echo -e "\n\033[1m== Decision Hub ==\033[0m"
@@ -317,11 +369,35 @@ if [ -z "$decision_hub" ]; then
 fi
 
 keep_section pyproject.toml decision-hub "$decision_hub"
-keep_section "$instructions" decision-hub "$decision_hub"
+keep_section AGENTS.md decision-hub "$decision_hub"
 keep_section template_README.md decision-hub "$decision_hub"
 if [ "${decision_hub}" = "y" ]; then
     echo "  Kept Decision Hub. Use: pixi run -e decision-hub dhub --help"
 fi
+
+# The project should not inherit instructions for maintaining the starter.
+sed '/^<!-- starter-only:start -->$/,/^<!-- starter-only:end -->$/d' AGENTS.md > AGENTS.md.tmp &&
+    mv AGENTS.md.tmp AGENTS.md || exit 1
+
+# The instructions are complete now, so that what prok generates from them is too.
+if [ "${use_prok}" = "y" ]; then
+    echo -e "\n\033[1m== Set Up prok ==\033[0m"
+    if apply_prok; then
+        echo -e "  \033[32m✔ Shared agent instructions are in .prok/instructions.md; prok generates AGENTS.md.\033[0m"
+    else
+        use_prok="n"
+        echo -e "  \033[33mℹ prok could not set up the project, so its changes were undone. Continuing without prok.\033[0m"
+    fi
+fi
+if [ "${use_prok}" = "n" ]; then
+    keep_section AGENTS.md prok n
+    keep_section AGENTS.md no-prok y
+    keep_section .pre-commit-config.yaml prok n
+    keep_section template_README.md prok n
+    echo -e "  \033[33mℹ Shared agent instructions are in AGENTS.md.\033[0m"
+fi
+instructions=AGENTS.md
+[ "${use_prok}" = "y" ] && instructions=.prok/instructions.md
 
 # Choose all dependencies before solving the new project's environment.
 if [ "${run_pixi}" = "y" ]; then
@@ -355,7 +431,7 @@ fi
 
 if [ "${create_readme}" = "y" ]; then
     # Under prok, AGENTS.md is generated and not committed; the README links the shared instructions instead.
-    sed -e "s|](AGENTS.md|]($instructions|g" -e "s|<project>-team|$prok_project-team|g" template_README.md > README.md
+    sed -e "s|](AGENTS.md|]($instructions|g" -e "s|<project>-team|$(prok_team "$prok_project")|g" template_README.md > README.md
     execute_command "rm template_README.md"
     echo -e "  \033[32m✔ Created README.md for new project (skeleton only).\033[0m"
 else
@@ -379,6 +455,10 @@ revert_on_exit=false
 # Connect first: it may ask questions and open a browser, while the installation below only takes time.
 if [ "${use_prok}" = "y" ]; then
     connect_prok
+    # pre-commit runs prok's checks itself; the hook prok wrote would run them a second time.
+    if [ "${install_hooks}" = "y" ] && [ "$had_commit_hook" = n ] && is_prok_hook; then
+        rm -f "$commit_hook"
+    fi
 fi
 
 if [ "${run_pixi}" = "y" ]; then
@@ -387,10 +467,6 @@ if [ "${run_pixi}" = "y" ]; then
         install_environment_command "pixi install -e decision-hub"
     fi
     if [ "${install_hooks}" = "y" ]; then
-        # pre-commit runs prok's checks itself; a hook prok wrote would run them a second time.
-        if grep -qs '^# Written by prok\.' .git/hooks/pre-commit; then
-            rm -f .git/hooks/pre-commit
-        fi
         install_environment_command "pixi r pre-commit install"
     fi
 fi
@@ -398,17 +474,33 @@ fi
 # Final message
 echo -e "\n\033[1m🎉 == Setup Complete! == 🎉\033[0m"
 echo -e "\n  \033[33mNote: To undo and start over, simply run:\033[0m"
-echo -e "  \033[36m  git reset --hard $(git rev-list --max-parents=0 HEAD) && git clean -fd\033[0m"
+echo -e "  \033[36m  git reset --hard $start_head && git clean -fd\033[0m"
+
+# Commits what setup did and pushes it. pre-commit's fixers may change files on the first try; those are taken in once.
+commit_and_push_setup() {
+    execute_command "git add ." || return 1
+    if ! execute_command "git commit -m 'Initial setup with project-starter'"; then
+        execute_command "git add ." && execute_command "git commit -m 'Initial setup with project-starter'" || return 1
+    fi
+    execute_command "git pull" && execute_command "git push origin main"
+}
+
+if [ "${use_prok}" = "y" ] && [ "${prok_connected}" != "y" ]; then
+    # prok's commit hook checks the project's graph, which it cannot read before the login and the project exist.
+    echo -e "\n\033[33mℹ Not committing: prok refuses commits until you are logged in and have a role in the project.\033[0m"
+    echo -e "  Once you have, run: \033[36mgit add . && git commit -m 'Initial setup with project-starter' && git push origin main\033[0m"
+    exit 0
+fi
 
 # Ask about committing and pushing
 prompt_yes_no "Commit and Push" "Do you want to commit and push these changes?" commit_and_push
 
 if [ "${commit_and_push}" = "y" ]; then
     echo -e "\n\033[1m== Committing and Pushing Changes ==\033[0m"
-    execute_command "git add ."
-    execute_command "git commit -m 'Initial setup with project-starter'"
-    execute_command "git pull"
-    execute_command "git push origin main"
+    if ! commit_and_push_setup; then
+        echo -e "  \033[31m✘ The changes were not all committed and pushed. The output above says why.\033[0m" >&2
+        exit 1
+    fi
     echo -e "  \033[32m✔ Changes committed and pushed successfully.\033[0m"
 else
     echo -e "\n\033[33mℹ Changes have not been committed or pushed.\033[0m"

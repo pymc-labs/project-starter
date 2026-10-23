@@ -35,16 +35,27 @@ FAKES = {
     "pixi": 'if [ "$1" = install ] && [ ! -f pixi.lock ]; then\n'
     '    printf "# Fresh project lock\\n" > pixi.lock\n'
     "fi\n",
-    # What setup relies on from prok: init writes the pointer, the ignore rules and its commit hook; a login
-    # needs a Google login; the generated files need a login; the plugin steps are what prok would print.
+    # What setup relies on from prok, as prok does it: init writes the pointer, the ignore rules, the generated files
+    # from the shared instructions and its commit hook, which refuses a commit without a login; a login needs a
+    # Google login; creating a project answers as the central system does; the plugin steps are what prok prints.
     "prok": 'case "$1" in\n'
     "init)\n"
-    "    mkdir -p .prok\n"
+    "    mkdir -p .prok .claude\n"
     '    printf "url: %s\\nproject: %s\\n" "$3" "$5" > .prok/central.yaml\n'
     '    printf "\\n# prok: generated files and personal files\\n/AGENTS.md\\n/CLAUDE.md\\n" >> .gitignore\n'
+    '    { printf "%s\\n\\n" "$SETUP_TEST_GENERATED"; cat .prok/instructions.md; } > AGENTS.md\n'
+    '    printf "%s\\n@AGENTS.md\\n" "$SETUP_TEST_GENERATED" > CLAUDE.md\n'
+    '    printf "{}\\n" > .claude/settings.json\n'
     '    printf "#!/bin/sh\\n# Written by prok. It refuses a commit.\\nprok validate\\n" > .git/hooks/pre-commit\n'
+    "    chmod +x .git/hooks/pre-commit\n"
     "    ;;\n"
-    'whoami) [ -f "$HOME/prok-login" ] ;;\n'
+    'whoami|validate|enforce-constraints) [ -f "$HOME/prok-login" ] ;;\n'
+    "project)\n"
+    '    case "$2:${SETUP_TEST_PROJECT:-new}" in\n'
+    '    create:new) echo "The project p is created. You maintain it, through the group ${SETUP_TEST_GROUP:-$(sed -n "s/^project: //p" .prok/central.yaml)-team}." ;;\n'
+    '    create:exists) echo "The project p exists already; you may maintain it." ;;\n'
+    '    create:taken) echo "prok: the central system refused: the project p exists already, and you have no role in it" >&2; exit 1 ;;\n'
+    "    esac ;;\n"
     'login) [ -f "$HOME/google-login" ] && touch "$HOME/prok-login" ||'
     ' { echo "prok: no Google login found on this machine" >&2; exit 2; } ;;\n'
     'emit-agent-instructions) [ -f "$HOME/prok-login" ] && printf "%s\\n" "$SETUP_TEST_GENERATED" > AGENTS.md ;;\n'
@@ -79,7 +90,7 @@ def starter_copy(tmp_path):
             ".git", ".pixi", ".venv", "__pycache__", ".pytest_cache", ".ruff_cache"
         ),
     )
-    subprocess.run(["git", "init", "--quiet", str(project)], check=True)
+    subprocess.run(["git", "init", "--quiet", "-b", "main", str(project)], check=True)
     subprocess.run(["git", "add", "."], cwd=project, check=True)
     subprocess.run(
         [
@@ -160,6 +171,56 @@ def run_setup(project, env, answers, *, succeeds=True):
     assert not (project / "tests" / "test_setup.py").exists()
     assert not (project / "template_README.md").exists()
     return result
+
+
+def add_user_work(project: Path) -> None:
+    """Untracked notes, an uncommitted edit, and a commit made after the starter's: work setup must never lose."""
+    (project / "notes.txt").write_text("Untracked project work.\n")
+    with (project / "package_name" / "model.py").open("a") as model:
+        model.write("\n# Uncommitted project work.\n")
+    (project / "loader.py").write_text("# Committed after the starter.\n")
+    git = [
+        "git",
+        "-c",
+        "user.name=T",
+        "-c",
+        "user.email=t@example.invalid",
+        "-c",
+        "core.hooksPath=/dev/null",
+    ]
+    subprocess.run([*git, "add", "loader.py"], cwd=project, check=True)
+    subprocess.run(
+        [*git, "commit", "--quiet", "-m", "Later work"], cwd=project, check=True
+    )
+
+
+def assert_user_work_kept(project: Path, package: str) -> None:
+    assert (project / "notes.txt").read_text() == "Untracked project work.\n"
+    assert "# Uncommitted project work." in (project / package / "model.py").read_text()
+    assert (project / "loader.py").read_text() == "# Committed after the starter.\n"
+    log = subprocess.check_output(["git", "log", "--format=%s"], cwd=project, text=True)
+    assert "Later work" in log
+
+
+def with_remote(project: Path, env: dict[str, str]) -> Path:
+    """A bare repository as origin, with main pushed to it, and an identity to commit as."""
+    remote = project.with_name("remote.git")
+    subprocess.run(
+        ["git", "init", "--quiet", "--bare", "-b", "main", str(remote)], check=True
+    )
+    subprocess.run(
+        ["git", "remote", "add", "origin", str(remote)], cwd=project, check=True
+    )
+    subprocess.run(
+        ["git", "push", "--quiet", "-u", "origin", "main"], cwd=project, check=True
+    )
+    env.update(
+        GIT_AUTHOR_NAME="Setup Test",
+        GIT_AUTHOR_EMAIL="setup-test@example.invalid",
+        GIT_COMMITTER_NAME="Setup Test",
+        GIT_COMMITTER_EMAIL="setup-test@example.invalid",
+    )
+    return remote
 
 
 def tracked(project: Path) -> set[str]:
@@ -309,13 +370,21 @@ def test_first_agent_session_finds_every_placeholder(
     run_setup(project, env, answers)
 
     instructions = ".prok/instructions.md" if prok == "y" else "AGENTS.md"
+    # The generated AGENTS.md repeats the instructions, but Git ignores it, and so does the search.
+    ignored = set(
+        subprocess.check_output(
+            ["git", "ls-files", "--others", "--ignored", "--exclude-standard"],
+            cwd=project,
+            text=True,
+        ).split()
+    )
     marked = {
         str(path.relative_to(project))
         for path in project.rglob("*")
         if ".git" not in path.relative_to(project).parts
         and path.is_file()
         and "TEMPLATE:" in path.read_text(errors="ignore")
-    }
+    } - ignored
     expected = {"pyproject.toml", instructions} | (
         {"README.md"} if readme == "y" else set()
     )
@@ -398,9 +467,14 @@ def test_setup_finishes_without_a_login_and_says_how_to_connect(
     assert "Not logged in to prok" in result.stdout
     assert "prok project create" not in calls(command_log, "prok")
     assert_prok(project, True)
-    # Without a login nothing is generated: the first session of an agent asks for one.
-    assert not (project / "AGENTS.md").exists()
+    # What prok generated before the login is already complete: no starter note, Decision Hub resolved.
+    generated = (project / "AGENTS.md").read_text()
+    assert "# How we work" in generated
+    assert "setup.sh" not in generated
     assert calls(command_log, "pixi")[0] == "pixi install"
+    # prok's commit hook would refuse the commit, so setup does not offer one, and says what to do.
+    assert "Not committing: prok refuses commits" in result.stdout
+    assert "Commit and Push" not in result.stdout
 
 
 @pytest.mark.parametrize("answer", ["", "y", "n"])
@@ -425,21 +499,129 @@ def test_setup_installs_the_claude_code_plugin_of_prok(
         assert "Start Claude Code again" in result.stdout
 
 
-def test_failed_prok_init_rolls_back_to_the_starter(
-    starter_copy: tuple[Path, dict[str, str], Path],
+@pytest.mark.parametrize("decision_hub", ["y", "n"])
+def test_failed_prok_init_undoes_prok_and_keeps_user_work(
+    starter_copy: tuple[Path, dict[str, str], Path], decision_hub: str
 ) -> None:
-    project, env, _ = starter_copy
+    project, env, command_log = starter_copy
+    add_user_work(project)
     env["SETUP_TEST_FAIL_COMMAND"] = (
         f"prok init --url {PROK_URL} --project sample-project"
     )
-    result = run_setup(project, env, ["", "n"], succeeds=False)
+    result = run_setup(project, env, ["n", "n", "y", "", decision_hub, "y", "n"])
+
+    assert "Continuing without prok" in result.stdout
+    assert_prok(project, False)
+    assert_decision_hub(project, decision_hub == "y", prok=False)
+    assert_user_work_kept(project, "sample_project")
+    assert not (project / ".git" / "hooks" / "pre-commit").exists()
+    assert calls(command_log, "prok") == [
+        f"prok init --url {PROK_URL} --project sample-project"
+    ]
+
+
+def test_abort_after_prok_init_rolls_back_to_where_setup_started(
+    starter_copy: tuple[Path, dict[str, str], Path],
+) -> None:
+    project, env, _ = starter_copy
+    add_user_work(project)
+    head = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=project)
+    # The answers end before the README question: the end of input aborts setup after prok init.
+    result = run_setup(project, env, ["n", "n", "y", "", "y"], succeeds=False)
 
     assert result.returncode == 1
-    assert "prok could not set up the project" in result.stderr
-    assert (project / "setup.sh").exists()
+    assert "Reverting changes to the commit setup started from" in result.stdout
+    assert subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=project) == head
     assert (project / "AGENTS.md").read_text() == (STARTER / "AGENTS.md").read_text()
     assert not (project / ".prok").exists()
-    assert subprocess.check_output(["git", "status", "--porcelain"], cwd=project) == b""
+    # Git's reset leaves hooks alone; the one prok wrote during setup is removed all the same.
+    assert not (project / ".git" / "hooks" / "pre-commit").exists()
+    assert (project / "loader.py").exists()
+
+
+@pytest.mark.parametrize("logged_in", [True, False])
+def test_setup_commits_and_pushes_only_what_prok_lets_through(
+    starter_copy: tuple[Path, dict[str, str], Path], logged_in: bool
+) -> None:
+    project, env, command_log = starter_copy
+    remote = with_remote(project, env)
+    if not logged_in:
+        (Path(env["HOME"]) / "google-login").unlink()
+        (bin_of(env) / "gcloud").unlink()
+    # Guided, without pixi: prok's own commit hook guards the commit.
+    result = run_setup(project, env, ["n", "n", "y", "", "y", "y", "y"])
+
+    pushed = subprocess.check_output(
+        ["git", "log", "--format=%s", "main"], cwd=remote, text=True
+    )
+    if logged_in:
+        assert "Changes committed and pushed successfully" in result.stdout
+        assert pushed.splitlines()[0] == "Initial setup with project-starter"
+        assert "prok validate" in calls(command_log, "prok")
+        assert (
+            "AGENTS.md"
+            not in subprocess.check_output(
+                ["git", "ls-files"], cwd=project, text=True
+            ).split()
+        )
+    else:
+        assert "Not committing: prok refuses commits" in result.stdout
+        assert "Initial setup with project-starter" not in pushed
+        assert "successfully" not in result.stdout
+
+
+def test_setup_reports_a_commit_that_failed(
+    starter_copy: tuple[Path, dict[str, str], Path],
+) -> None:
+    project, env, _ = starter_copy
+    with_remote(project, env)
+    env["SETUP_TEST_FAIL_COMMAND"] = "prok validate"
+    result = run_setup(project, env, ["n", "n", "y", "", "y", "y", "y"], succeeds=False)
+
+    assert result.returncode == 1
+    assert "were not all committed and pushed" in result.stderr
+    assert "successfully" not in result.stdout
+
+
+@pytest.mark.parametrize(
+    ("answer", "expected"),
+    [
+        ("exists", "existed before this repository"),
+        ("taken", "The project was not created"),
+    ],
+)
+def test_setup_says_when_the_prok_project_existed_before(
+    starter_copy: tuple[Path, dict[str, str], Path], answer: str, expected: str
+) -> None:
+    project, env, _ = starter_copy
+    env["SETUP_TEST_PROJECT"] = answer
+    result = run_setup(project, env, ["", "n"])
+
+    assert expected in result.stdout
+    if answer == "exists":
+        assert "prok init --url" in result.stdout
+    else:
+        assert "Not committing" in result.stdout
+
+
+@pytest.mark.parametrize(
+    ("name", "group", "server"),
+    [
+        ("Precis_MMM", "precis-mmm-team", None),
+        ("demand-forecast", "demand-forecast-team-2", "demand-forecast-team-2"),
+    ],
+)
+def test_readme_names_the_group_the_central_system_made(
+    starter_copy: tuple[Path, dict[str, str], Path],
+    name: str,
+    group: str,
+    server: str | None,
+) -> None:
+    project, env, _ = starter_copy
+    env["SETUP_TEST_GROUP"] = server or group
+    run_setup(project, env, ["n", "n", "y", name, "y", "y", "n"])
+
+    assert f"prok group add {group} <your mail>" in (project / "README.md").read_text()
 
 
 @pytest.mark.parametrize("prok", ["y", "n"])
