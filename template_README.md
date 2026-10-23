@@ -63,7 +63,7 @@ Commit `pixi.lock` along with `pyproject.toml`, so everyone working on the proje
 
 What the project decides and finds out lives in [prok](https://github.com/pymc-labs/prok), one graph for the whole team on PyMC Labs' Google Cloud. Each entry is a decision, a fact, a convention, a constraint, an assumption or an open question, with its reason and the files it applies to. Agents get the entries for a file before they edit it, whichever harness they run in, and write new ones as they work.
 
-Entries are proposed on a branch and hold once its pull request is merged and a maintainer canonizes the branch's world: `prok canonize <world>`, after reading its review. `prok worlds` lists them. To look around:
+Entries are proposed on a branch, and the [prok workflow](.github/workflows/prok.yml) checks them on its pull request, with prok's automatic review as a comment. Once the pull request is merged, the workflow canonizes the branch's world and its entries hold for everyone. It needs no key: the project names this repository as its own (`prok project add-repository <owner>/<name>`, which setup ran if the repository had a GitHub remote). `prok worlds` lists the worlds. To look around:
 
 ```sh
 prok find "how do we treat missing sales"   # search by meaning

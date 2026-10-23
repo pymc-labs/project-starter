@@ -64,7 +64,7 @@ Setup asks whether you want it (yes by default) and then does the rest:
 3. Logs you in with your PyMC Labs Google account and creates the project in prok, with you as its maintainer. If the project exists already, setup says whom to ask.
 4. Installs the prok plugin for Claude Code on your machine.
 
-From then on agents start every session with the project's kernel, the entries everyone needs to know. Before they edit a file, they're handed the entries that apply to it. When they decide or find something others need to know, they write an entry on their branch, and it holds once the PR is merged and a maintainer canonizes the branch's world. Nothing is ever lost: an entry that no longer holds gets superseded or retired, and `prok impact <id>` shows what depends on it.
+From then on agents start every session with the project's kernel, the entries everyone needs to know. Before they edit a file, they're handed the entries that apply to it. When they decide or find something others need to know, they write an entry on their branch. The `prok` workflow checks those entries on the PR and puts prok's review on it, and once the PR is merged it makes them hold for everyone. It needs no secrets: setup tells prok that the repository belongs to the project. Nothing is ever lost: an entry that no longer holds gets superseded or retired, and `prok impact <id>` shows what depends on it.
 
 Your teammates run `prok init` and `prok login` in their clone, and you add them with `prok group add <project>-team <their mail>`.
 

@@ -123,6 +123,39 @@ install_prok() {
         execute_command "npm install -g '$download/prok.tgz'"
 }
 
+# The repository on GitHub that origin names, as owner/name, or nothing.
+# A URL of github.com, with a scheme (HTTPS with a user, `ssh://` with a port) or in SSH's short form, where a host
+# alias such as github-work stands for it; a trailing `/` or `.git` is fine. Local paths and other hosts are none.
+github_repository() {
+    local url host owner name
+    url=$(git remote get-url origin 2>/dev/null) || return 0
+    case "$url" in
+        /* | .* | '~'* | file:*) return 0 ;;
+        *://*)
+            host="${url#*://}"
+            host="${host%%/*}"
+            host="${host#*@}"
+            host="${host%%:*}"
+            case "$host" in github.com | *.github.com) ;; *) return 0 ;; esac
+            ;;
+        *@*:*)
+            host="${url%%:*}"
+            host="${host#*@}"
+            case "$host" in *github*) ;; *) return 0 ;; esac
+            ;;
+        *) return 0 ;;
+    esac
+    url="${url%/}"
+    url="${url%.git}"
+    name="${url##*/}"
+    url="${url%/*}"
+    owner="${url##*[/:]}"
+    case "$owner/$name" in
+        */*/* | *[!A-Za-z0-9_./-]* | /* | */) return 0 ;;
+    esac
+    printf '%s/%s\n' "$owner" "$name"
+}
+
 # Logs in to the central system of prok; where Google has no login on this machine, it asks gcloud for one first.
 prok_login() {
     prok whoami >/dev/null 2>&1 && return 0
@@ -211,6 +244,17 @@ create_prok_project() {
     fi
 }
 
+# CI canonizes the world of a merged pull request as a workflow of this repository, once the project names it.
+name_repository() {
+    local repository
+    repository=$(github_repository)
+    if [ -z "$repository" ]; then
+        echo -e "  \033[33mℹ No GitHub remote yet. Once there is one, run 'prok project add-repository <owner>/<name>' for CI.\033[0m"
+    elif ! execute_command "prok project add-repository '$repository'"; then
+        echo -e "  \033[33mℹ CI cannot canonize until a maintainer runs 'prok project add-repository $repository'.\033[0m"
+    fi
+}
+
 # Connects the new project to the central system of prok. Each step can be retried by hand; none undoes the setup.
 # prok_connected says whether it worked: prok's commit hook refuses commits until it has.
 connect_prok() {
@@ -222,6 +266,7 @@ connect_prok() {
     fi
     if create_prok_project; then
         prok_connected=y
+        name_repository
     else
         echo -e "  \033[33mℹ The project was not created. The message above says why.\033[0m"
     fi
@@ -404,6 +449,7 @@ if [ "${use_prok}" = "n" ]; then
     keep_section AGENTS.md no-prok y
     keep_section .pre-commit-config.yaml prok n
     keep_section template_README.md prok n
+    rm -f .github/workflows/prok.yml
     echo -e "  \033[33mℹ Shared agent instructions are in AGENTS.md.\033[0m"
 fi
 instructions=AGENTS.md
