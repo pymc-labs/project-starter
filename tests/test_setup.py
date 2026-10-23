@@ -329,6 +329,10 @@ def test_recommended_setup_connects_the_project_to_prok(
         "git@github.com:pymc-labs/sample-project.git",
         "https://github.com/pymc-labs/sample-project",
         "ssh://git@github.com/pymc-labs/sample-project.git",
+        "git@github-work:pymc-labs/sample-project.git",
+        "https://someone@github.com/pymc-labs/sample-project/",
+        "ssh://git@ssh.github.com:443/pymc-labs/sample-project.git",
+        "https://gitlab.com/pymc-labs/sample-project.git",
         None,
     ],
 )
@@ -343,7 +347,7 @@ def test_setup_names_the_repository_as_the_projects_own_for_ci(
     result = run_setup(project, env, ["", "n"])
 
     prok_calls = calls(command_log, "prok")
-    if remote is None:
+    if remote is None or "gitlab" in remote:
         assert "No GitHub remote yet" in result.stdout
         assert not any("add-repository" in call for call in prok_calls)
     else:
@@ -353,6 +357,28 @@ def test_setup_names_the_repository_as_the_projects_own_for_ci(
     workflow = (project / ".github" / "workflows" / "prok.yml").read_text()
     assert "id-token: write" in workflow
     assert "uses: pymc-labs/prok/ci@" in workflow
+    assert "hashFiles('.prok/central.yaml')" in workflow
+
+
+def test_setup_names_no_repository_for_a_project_it_could_not_join(
+    starter_copy: tuple[Path, dict[str, str], Path],
+) -> None:
+    project, env, command_log = starter_copy
+    subprocess.run(
+        [
+            "git",
+            "remote",
+            "add",
+            "origin",
+            "git@github.com:pymc-labs/sample-project.git",
+        ],
+        cwd=project,
+        check=True,
+    )
+    env["SETUP_TEST_PROJECT"] = "taken"
+    run_setup(project, env, ["", "n"])
+
+    assert not any("add-repository" in call for call in calls(command_log, "prok"))
 
 
 @pytest.mark.parametrize("hub", ["y", "n", ""])
