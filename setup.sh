@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# The central system of prok that holds the knowledge of PyMC Labs projects, on the company's Google Cloud.
+# PROK_URL overrides it, to try setup against another instance.
+prok_url="${PROK_URL:-https://prok-central-44370529026.europe-west3.run.app}"
+prok_release="pymc-labs/prok"
+
 # Functions -------------------------------------------------------------------
 # -----------------------------------------------------------------------------
 
@@ -62,9 +67,95 @@ exit_gracefully() {
     fi
 }
 
+# Keeps the lines between the markers of a section and removes the markers, or removes the whole section.
+# Markers stand on lines of their own: `<!-- name:start -->` in Markdown, `# name:start` elsewhere.
+keep_section() {
+    local file="$1" name="$2" keep="$3" open close
+    [ -f "$file" ] || return 0
+    case "$file" in
+        *.md) open="<!-- $name:start -->"; close="<!-- $name:end -->" ;;
+        *) open="# $name:start"; close="# $name:end" ;;
+    esac
+    if [ "$keep" = "y" ]; then
+        sed "\|^$open\$|d; \|^$close\$|d" "$file" > "$file.tmp"
+    else
+        sed "\|^$open\$|,\|^$close\$|d" "$file" > "$file.tmp"
+    fi
+    mv "$file.tmp" "$file"
+}
+
+# Says why prok cannot be installed on this machine, or nothing when it can.
+prok_install_blocker() {
+    local node_major
+    node_major=$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null)
+    if [ -z "$node_major" ] || [ "$node_major" -lt 24 ] || ! command -v npm >/dev/null 2>&1; then
+        echo "prok needs Node 24 or later with npm (on macOS: brew install node)."
+    elif ! command -v gh >/dev/null 2>&1; then
+        echo "prok is installed with the GitHub CLI (on macOS: brew install gh)."
+    elif ! gh api "repos/$prok_release" --silent >/dev/null 2>&1; then
+        echo "the GitHub CLI cannot read $prok_release; log in with your PyMC Labs GitHub account: gh auth login."
+    fi
+}
+
+install_prok() {
+    local download
+    download=$(mktemp -d) &&
+        execute_command "gh release download -R $prok_release -p prok.tgz -D '$download' --clobber" &&
+        execute_command "npm install -g '$download/prok.tgz'"
+}
+
+# Logs in to the central system of prok; where Google has no login on this machine, it asks gcloud for one first.
+prok_login() {
+    prok whoami >/dev/null 2>&1 && return 0
+    execute_command "prok login" && return 0
+    if ! command -v gcloud >/dev/null 2>&1; then
+        echo "  prok logs in with your PyMC Labs Google account through gcloud: https://cloud.google.com/sdk/docs/install" >&2
+        return 1
+    fi
+    echo "  Log in to Google with your PyMC Labs account. A browser opens."
+    execute_command "gcloud auth login" && execute_command "prok login"
+}
+
+# Makes Claude Code take the plugin of prok, or its newer version, with the commands prok prints for it.
+install_claude_plugin() {
+    local steps step
+    command -v claude >/dev/null 2>&1 || return 0
+    steps=$(prok install-agent-plugin --global 2>/dev/null | sed -n 's/^  \(claude plugin .*\)$/\1/p')
+    [ -n "$steps" ] || return 0
+    if [ -z "$claude_plugin" ]; then
+        echo "  Claude Code gets prok's hooks and skill from a plugin, installed once per machine."
+        prompt_yes_no "Claude Code" "Do you want to install the prok plugin for Claude Code?" claude_plugin
+    fi
+    [ "$claude_plugin" = "y" ] || return 0
+    while IFS= read -r step; do
+        execute_command "$step" </dev/null || return 1
+    done <<< "$steps"
+    echo "  Start Claude Code again for the plugin to take effect."
+}
+
+# Connects the new project to the central system of prok. Each step can be retried by hand; none undoes the setup.
+connect_prok() {
+    echo -e "\n\033[1m== Connect to prok ==\033[0m"
+    if ! prok_login; then
+        echo -e "  \033[33mℹ Not logged in to prok. Run 'gcloud auth login', then 'prok login' and 'prok project create'.\033[0m"
+        return 0
+    fi
+    if ! execute_command "prok project create"; then
+        echo -e "  \033[33mℹ The project was not created. The message above says why.\033[0m"
+    fi
+    execute_command "prok emit-agent-instructions" ||
+        echo -e "  \033[33mℹ AGENTS.md and CLAUDE.md are written once you have a role in the project.\033[0m"
+    install_claude_plugin ||
+        echo -e "  \033[33mℹ The Claude Code plugin was not installed. Run 'prok install-agent-plugin --global' and what it prints.\033[0m"
+    if command -v codex >/dev/null 2>&1; then
+        echo "  Codex runs prok's hooks once you trust them: start Codex in this repository and run /hooks."
+    fi
+}
+
 # Validate before enabling rollback: rejecting a name must preserve local work.
 current_name="package_name"
-name=$(basename "$(pwd)" | tr '-' '_')
+directory=$(basename "$(pwd)")
+name=$(printf '%s' "$directory" | tr '-' '_')
 name_lower=$(printf '%s' "$name" | tr '[:upper:]' '[:lower:]')
 
 # Check case-insensitively so generated projects also work on macOS filesystems.
@@ -93,7 +184,10 @@ if [ "${use_opinionated_setup}" = "y" ]; then
     run_pixi="y"
     install_hooks="y"
     create_readme="y"
-    persistent_agent_context="y"
+    use_prok="y"
+    prok_project="$directory"
+    install_prok_now="y"
+    claude_plugin="y"
     decision_hub="y"
 else
     echo -e "\n\033[33mℹ You will be prompted for each option during the setup.\033[0m"
@@ -101,7 +195,10 @@ else
     run_pixi=""
     install_hooks=""
     create_readme=""
-    persistent_agent_context=""
+    use_prok=""
+    prok_project=""
+    install_prok_now=""
+    claude_plugin=""
     decision_hub=""
 fi
 
@@ -135,60 +232,95 @@ if [ -z "$run_pixi" ]; then
     prompt_yes_no "Pixi Install" "Do you want to run 'pixi install'?" run_pixi
 fi
 
-# == Persistent Agent Context ==
+# == Project Knowledge (prok) ==
 
-echo -e "\n\033[1m== Persistent Agent Context ==\033[0m"
-echo "  AGENTS.md guides agents to workflow rules, implementation references,"
-echo "  and session notes. The notes and skill directory start empty."
-echo "  This also includes scripts/ with .adhoc/reference/ and ignored .adhoc/scratch/."
+echo -e "\n\033[1m== Project Knowledge (prok) ==\033[0m"
+echo "  prok keeps what the project decides and finds out in one graph on PyMC Labs' Google Cloud,"
+echo "  shared by the team and their agents in Claude Code, Codex and opencode. Agents get the"
+echo "  entries that apply to a file before they edit it, and propose new ones in pull requests."
 
-if [ -z "$persistent_agent_context" ]; then
-    prompt_yes_no "Persistent Agent Context" "Do you want to keep persistent agent context for this project?" persistent_agent_context
+if [ -z "$use_prok" ]; then
+    prompt_yes_no "prok" "Do you want to keep this project's knowledge in prok?" use_prok
 fi
 
-if [ "${persistent_agent_context}" = "y" ]; then
-    # The initialized project should not inherit instructions for maintaining the starter.
-    sed '/^<!-- starter-only:start -->$/,/^<!-- starter-only:end -->$/d' AGENTS.md > AGENTS.md.tmp &&
-        mv AGENTS.md.tmp AGENTS.md || exit 1
-    echo -e "  \033[32m✔ Kept AGENTS.md, AGENTS/, .agents/skills/, and scripts/.\033[0m"
+if [ "${use_prok}" = "y" ] && ! command -v prok >/dev/null 2>&1; then
+    blocker=$(prok_install_blocker)
+    if [ -n "$blocker" ]; then
+        echo -e "  \033[33mℹ prok is not installed, and cannot be: $blocker\033[0m"
+        use_prok="n"
+    else
+        if [ -z "$install_prok_now" ]; then
+            prompt_yes_no "Install prok" "prok is not installed. Do you want to install it with npm?" install_prok_now
+        fi
+        if [ "$install_prok_now" != "y" ] || ! install_prok || ! command -v prok >/dev/null 2>&1; then
+            echo -e "  \033[33mℹ prok is not installed.\033[0m"
+            use_prok="n"
+        fi
+    fi
+    if [ "${use_prok}" = "n" ]; then
+        echo -e "  \033[33mℹ Continuing without prok. To add it later, install prok and run in this repository:\033[0m"
+        echo -e "  \033[36m  prok init --url $prok_url --project $directory && prok login && prok project create\033[0m"
+    fi
+fi
+
+if [ "${use_prok}" = "y" ] && [ -z "$prok_project" ]; then
+    echo -e "\n\033[1;34m? prok Project\033[0m"
+    echo "  Name an existing prok project to share its knowledge with another repository."
+    while true; do
+        if ! read -r -p "  Project name [$directory]: " prok_project; then
+            echo -e ""
+            exit 1
+        fi
+        prok_project="${prok_project:-$directory}"
+        case $prok_project in
+            *[!A-Za-z0-9_.-]*) echo "  Use letters, digits, '.', '_' and '-' only." ;;
+            *) break ;;
+        esac
+    done
+fi
+
+if [ "${use_prok}" = "y" ]; then
+    # prok generates AGENTS.md and CLAUDE.md from the shared instructions, the kernel and personal additions.
+    mkdir -p .prok
+    keep_section AGENTS.md prok y
+    keep_section AGENTS.md no-prok n
+    mv AGENTS.md .prok/instructions.md
+    git rm --cached --quiet --ignore-unmatch AGENTS.md
+    keep_section .pre-commit-config.yaml prok y
+    keep_section template_README.md prok y
+    if ! execute_command "prok init --url '$prok_url' --project '$prok_project'"; then
+        echo "prok could not set up the project. Run 'bash setup.sh' again, or answer no to prok." >&2
+        exit 1
+    fi
+    echo -e "  \033[32m✔ Shared agent instructions are in .prok/instructions.md; prok generates AGENTS.md.\033[0m"
 else
-    execute_command "rm -rf AGENTS.md AGENTS"
-    execute_command "rm -f .agents/skills/.gitkeep"
-    execute_command "rm -f scripts/README.md scripts/.adhoc/README.md scripts/.adhoc/reference/.gitkeep scripts/.adhoc/scratch/.gitkeep"
-    # Remove empty scaffold directories, preserving user-added skills and scripts.
-    rmdir .agents/skills .agents 2>/dev/null || true
-    rmdir scripts/.adhoc/reference scripts/.adhoc/scratch scripts/.adhoc scripts 2>/dev/null || true
-    echo -e "  \033[33mℹ Removed the persistent agent context scaffold.\033[0m"
+    keep_section AGENTS.md prok n
+    keep_section AGENTS.md no-prok y
+    keep_section .pre-commit-config.yaml prok n
+    keep_section template_README.md prok n
+    echo -e "  \033[33mℹ Shared agent instructions are in AGENTS.md.\033[0m"
 fi
+
+# The project should not inherit instructions for maintaining the starter.
+instructions=AGENTS.md
+[ "${use_prok}" = "y" ] && instructions=.prok/instructions.md
+sed '/^<!-- starter-only:start -->$/,/^<!-- starter-only:end -->$/d' "$instructions" > "$instructions.tmp" &&
+    mv "$instructions.tmp" "$instructions" || exit 1
 
 # == Decision Hub ==
 
-if [ "${persistent_agent_context}" = "y" ]; then
-    if [ -z "$decision_hub" ]; then
-        echo "  Decision Hub finds and downloads agent skills. Public skills need no account."
-        echo "  Enable its CLI in a separate Pixi environment, with instructions in AGENTS/."
-        prompt_yes_no "Decision Hub" "Do you want to include Decision Hub (dhub)?" decision_hub
-    fi
-else
-    decision_hub="n"
+echo -e "\n\033[1m== Decision Hub ==\033[0m"
+if [ -z "$decision_hub" ]; then
+    echo "  Decision Hub finds and downloads agent skills. Public skills need no account."
+    echo "  Enable its CLI in a separate Pixi environment, with instructions for agents."
+    prompt_yes_no "Decision Hub" "Do you want to include Decision Hub (dhub)?" decision_hub
 fi
 
+keep_section pyproject.toml decision-hub "$decision_hub"
+keep_section "$instructions" decision-hub "$decision_hub"
+keep_section template_README.md decision-hub "$decision_hub"
 if [ "${decision_hub}" = "y" ]; then
-    sed '/^# decision-hub:/d' pyproject.toml > pyproject.toml.tmp &&
-        mv pyproject.toml.tmp pyproject.toml || exit 1
-    for doc in AGENTS.md template_README.md; do
-        sed '/^<!-- decision-hub:/d' "$doc" > "$doc.tmp" && mv "$doc.tmp" "$doc" || exit 1
-    done
     echo "  Kept Decision Hub. Use: pixi run -e decision-hub dhub --help"
-else
-    sed '/^# decision-hub:start$/,/^# decision-hub:end$/d' pyproject.toml > pyproject.toml.tmp &&
-        mv pyproject.toml.tmp pyproject.toml || exit 1
-    for doc in AGENTS.md template_README.md; do
-        [ -f "$doc" ] || continue
-        sed '/^<!-- decision-hub:start -->$/,/^<!-- decision-hub:end -->$/d' "$doc" > "$doc.tmp" &&
-            mv "$doc.tmp" "$doc" || exit 1
-    done
-    rm -f AGENTS/CONVENTION/DECISION_HUB.md
 fi
 
 # Choose all dependencies before solving the new project's environment.
@@ -222,11 +354,8 @@ if [ -z "$create_readme" ]; then
 fi
 
 if [ "${create_readme}" = "y" ]; then
-    if [ "${persistent_agent_context}" = "y" ]; then
-        sed '/^<!-- agent-context:/d' template_README.md > README.md
-    else
-        sed '/^<!-- agent-context:start -->$/,/^<!-- agent-context:end -->$/d' template_README.md > README.md
-    fi
+    # Under prok, AGENTS.md is generated and not committed; the README links the shared instructions instead.
+    sed -e "s|](AGENTS.md|]($instructions|g" -e "s|<project>-team|$prok_project-team|g" template_README.md > README.md
     execute_command "rm template_README.md"
     echo -e "  \033[32m✔ Created README.md for new project (skeleton only).\033[0m"
 else
@@ -246,12 +375,22 @@ echo -e "  \033[32m🗑️ Setup script has been deleted.\033[0m"
 
 # Configuration is complete. A failed download must not roll back project files.
 revert_on_exit=false
+
+# Connect first: it may ask questions and open a browser, while the installation below only takes time.
+if [ "${use_prok}" = "y" ]; then
+    connect_prok
+fi
+
 if [ "${run_pixi}" = "y" ]; then
     install_environment_command "pixi install"
     if [ "${decision_hub}" = "y" ]; then
         install_environment_command "pixi install -e decision-hub"
     fi
     if [ "${install_hooks}" = "y" ]; then
+        # pre-commit runs prok's checks itself; a hook prok wrote would run them a second time.
+        if grep -qs '^# Written by prok\.' .git/hooks/pre-commit; then
+            rm -f .git/hooks/pre-commit
+        fi
         install_environment_command "pixi r pre-commit install"
     fi
 fi
