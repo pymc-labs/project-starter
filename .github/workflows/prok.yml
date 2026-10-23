@@ -20,6 +20,8 @@ concurrency:
 
 jobs:
   prok:
+    # Not in the starter itself, which is no prok project; in every project made from it.
+    if: github.repository != 'pymc-labs/project-starter'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
