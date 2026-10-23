@@ -1,0 +1,26 @@
+# prok checks the world of each pull request against the project's canon, puts the automatic review on the pull
+# request, and canonizes the world once the pull request is merged. It logs in without a key, as a workflow of this
+# repository, which setup names as the project's own (prok project add-repository).
+name: prok
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+
+# The checks of one ref queue behind each other; a canonization never shares a group with anything, so nothing cancels it.
+concurrency:
+  group: prok-${{ github.event_name == 'push' && github.sha || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  prok:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pymc-labs/prok/ci@v0.1.8

@@ -55,6 +55,7 @@ FAKES = {
     '    create:new) echo "The project p is created. You maintain it, through the group ${SETUP_TEST_GROUP:-$(sed -n "s/^project: //p" .prok/central.yaml)-team}." ;;\n'
     '    create:exists) echo "The project p exists already; you may maintain it." ;;\n'
     '    create:taken) echo "prok: the central system refused: the project p exists already, and you have no role in it" >&2; exit 1 ;;\n'
+    '    add-repository:*) [ -n "$3" ] ;;\n'
     "    esac ;;\n"
     'login) [ -f "$HOME/google-login" ] && touch "$HOME/prok-login" ||'
     ' { echo "prok: no Google login found on this machine" >&2; exit 2; } ;;\n'
@@ -258,6 +259,7 @@ def assert_prok(
         assert ("prok enforce-constraints" in hooks.read_text()) == enabled
     assert not (project / "AGENTS").exists()
     assert not (project / "scripts").exists()
+    assert (project / ".github" / "workflows" / "prok.yml").exists() == enabled
     if enabled:
         assert (project / ".prok" / "central.yaml").read_text() == (
             f"url: {PROK_URL}\nproject: {prok_project}\n"
@@ -319,6 +321,38 @@ def test_recommended_setup_connects_the_project_to_prok(
     assert "](.prok/instructions.md#how-we-work)" in readme
     assert "](AGENTS.md" not in readme
     assert "prok group add sample-project-team <your mail>" in readme
+
+
+@pytest.mark.parametrize(
+    "remote",
+    [
+        "git@github.com:pymc-labs/sample-project.git",
+        "https://github.com/pymc-labs/sample-project",
+        "ssh://git@github.com/pymc-labs/sample-project.git",
+        None,
+    ],
+)
+def test_setup_names_the_repository_as_the_projects_own_for_ci(
+    starter_copy: tuple[Path, dict[str, str], Path], remote: str | None
+) -> None:
+    project, env, command_log = starter_copy
+    if remote is not None:
+        subprocess.run(
+            ["git", "remote", "add", "origin", remote], cwd=project, check=True
+        )
+    result = run_setup(project, env, ["", "n"])
+
+    prok_calls = calls(command_log, "prok")
+    if remote is None:
+        assert "No GitHub remote yet" in result.stdout
+        assert not any("add-repository" in call for call in prok_calls)
+    else:
+        assert prok_calls[prok_calls.index("prok project create") + 1] == (
+            "prok project add-repository pymc-labs/sample-project"
+        )
+    workflow = (project / ".github" / "workflows" / "prok.yml").read_text()
+    assert "id-token: write" in workflow
+    assert "uses: pymc-labs/prok/ci@" in workflow
 
 
 @pytest.mark.parametrize("hub", ["y", "n", ""])
