@@ -202,8 +202,8 @@ def assert_user_work_kept(project: Path, package: str) -> None:
     assert "Later work" in log
 
 
-def with_remote(project: Path, env: dict[str, str]) -> Path:
-    """A bare repository as origin, with main pushed to it, and an identity to commit as."""
+def with_remote(project: Path, env: dict[str, str], *, upstream: bool = True) -> Path:
+    """A bare repository as origin, with main pushed and tracked or only added, and an identity to commit as."""
     remote = project.with_name("remote.git")
     subprocess.run(
         ["git", "init", "--quiet", "--bare", "-b", "main", str(remote)], check=True
@@ -211,9 +211,10 @@ def with_remote(project: Path, env: dict[str, str]) -> Path:
     subprocess.run(
         ["git", "remote", "add", "origin", str(remote)], cwd=project, check=True
     )
-    subprocess.run(
-        ["git", "push", "--quiet", "-u", "origin", "main"], cwd=project, check=True
-    )
+    if upstream:
+        subprocess.run(
+            ["git", "push", "--quiet", "-u", "origin", "main"], cwd=project, check=True
+        )
     env.update(
         GIT_AUTHOR_NAME="Setup Test",
         GIT_AUTHOR_EMAIL="setup-test@example.invalid",
@@ -537,6 +538,30 @@ def test_abort_after_prok_init_rolls_back_to_where_setup_started(
     # Git's reset leaves hooks alone; the one prok wrote during setup is removed all the same.
     assert not (project / ".git" / "hooks" / "pre-commit").exists()
     assert (project / "loader.py").exists()
+    # Work that was there before setup is stashed, not deleted.
+    assert "Your uncommitted work is in the stash" in result.stdout
+    assert not (project / "notes.txt").exists()
+    subprocess.run(["git", "stash", "pop", "--quiet"], cwd=project, check=True)
+    assert (project / "notes.txt").read_text() == "Untracked project work.\n"
+    models = [
+        project / package / "model.py" for package in ("package_name", "sample_project")
+    ]
+    assert any(
+        "# Uncommitted project work." in path.read_text()
+        for path in models
+        if path.exists()
+    )
+
+
+def test_abort_from_a_clean_clone_leaves_the_starter_as_it_was(
+    starter_copy: tuple[Path, dict[str, str], Path],
+) -> None:
+    project, env, _ = starter_copy
+    result = run_setup(project, env, ["n", "n", "y", "", "y"], succeeds=False)
+
+    assert result.returncode == 1
+    assert subprocess.check_output(["git", "status", "--porcelain"], cwd=project) == b""
+    assert subprocess.check_output(["git", "stash", "list"], cwd=project) == b""
 
 
 @pytest.mark.parametrize("logged_in", [True, False])
@@ -570,6 +595,29 @@ def test_setup_commits_and_pushes_only_what_prok_lets_through(
         assert "successfully" not in result.stdout
 
 
+def test_setup_pushes_where_origin_was_added_by_hand(
+    starter_copy: tuple[Path, dict[str, str], Path],
+) -> None:
+    project, env, _ = starter_copy
+    remote = with_remote(project, env, upstream=False)
+    result = run_setup(project, env, ["n", "n", "y", "", "y", "y", "y"])
+
+    assert "Changes committed and pushed successfully" in result.stdout
+    pushed = subprocess.check_output(
+        ["git", "log", "--format=%s", "main"], cwd=remote, text=True
+    )
+    assert pushed.splitlines()[0] == "Initial setup with project-starter"
+
+
+def test_setup_without_pixi_says_how_pre_commit_takes_over_from_prok(
+    starter_copy: tuple[Path, dict[str, str], Path],
+) -> None:
+    project, env, _ = starter_copy
+    result = run_setup(project, env, ["n", "n", "y", "", "y", "y", "n"])
+
+    assert "pixi r pre-commit install -f" in result.stdout
+
+
 def test_setup_reports_a_commit_that_failed(
     starter_copy: tuple[Path, dict[str, str], Path],
 ) -> None:
@@ -598,9 +646,9 @@ def test_setup_says_when_the_prok_project_existed_before(
     result = run_setup(project, env, ["", "n"])
 
     assert expected in result.stdout
-    if answer == "exists":
-        assert "prok init --url" in result.stdout
-    else:
+    assert "project of its own: prok init --url" in result.stdout
+    if answer == "taken":
+        assert "now shares its knowledge" not in result.stdout
         assert "Not committing" in result.stdout
 
 

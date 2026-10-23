@@ -51,10 +51,15 @@ exit_gracefully() {
     if [ "$revert_on_exit" = true ]; then
         echo -e "\n\033[31mAborting Setup:\033[0m"
 
-        # Revert to the commit setup started from
+        # Revert to the commit setup started from. Work that was there before setup is stashed, never deleted.
         echo -e "  Reverting changes to the commit setup started from:"
-        execute_command "git reset --hard $start_head"
-        execute_command "git clean -fd"
+        if [ "$started_clean" = y ]; then
+            execute_command "git reset --hard $start_head"
+            execute_command "git clean -fd"
+        else
+            execute_command "git -c user.name=project-starter -c user.email=setup@project-starter.invalid stash push --include-untracked --quiet -m 'project-starter setup, aborted: your work and what setup had changed'"
+            echo -e "  \033[33mYour uncommitted work is in the stash, together with what setup had changed: git stash show --include-untracked\033[0m"
+        fi
         # Git leaves its hooks alone; a commit hook prok wrote during setup goes too.
         if [ "$had_commit_hook" = n ] && is_prok_hook; then
             execute_command "rm -f '$commit_hook'"
@@ -188,10 +193,13 @@ create_prok_project() {
     said=$(prok project create 2>&1)
     status=$?
     printf '%s\n' "$said"
-    case "$said" in
-        *"exists already"*)
+    case "$status:$said" in
+        0:*"exists already"*)
             echo -e "  \033[33m⚠ The prok project '$prok_project' existed before this repository, which now shares its knowledge.\033[0m"
             echo -e "  \033[33m  If it should have a project of its own: prok init --url $prok_url --project <new-name> && prok project create\033[0m"
+            ;;
+        *"exists already"*)
+            echo -e "  \033[33m  To give this repository a project of its own: prok init --url $prok_url --project <new-name> && prok project create\033[0m"
             ;;
     esac
     [ "$status" -eq 0 ] || return 1
@@ -247,6 +255,8 @@ done
 
 # What a rollback returns to: the commit setup started from, and whether the clone had a commit hook of its own.
 start_head=$(git rev-parse HEAD)
+started_clean=y
+[ -z "$(git status --porcelain)" ] || started_clean=n
 commit_hook=$(git rev-parse --git-path hooks/pre-commit)
 had_commit_hook=n
 [ ! -e "$commit_hook" ] || had_commit_hook=y
@@ -419,6 +429,10 @@ if [ "${run_pixi}" = "n" ]; then
     if [ "${decision_hub}" = "y" ]; then
         echo "  Then run 'pixi install -e decision-hub' to install the optional CLI."
     fi
+    if [ "${use_prok}" = "y" ] && [ -f .pre-commit-config.yaml ]; then
+        # pre-commit runs prok's checks itself; -f takes over the hook prok wrote, which would run them a second time.
+        echo "  Then run 'pixi r pre-commit install -f'."
+    fi
 fi
 
 # == Create README ==
@@ -482,7 +496,11 @@ commit_and_push_setup() {
     if ! execute_command "git commit -m 'Initial setup with project-starter'"; then
         execute_command "git add ." && execute_command "git commit -m 'Initial setup with project-starter'" || return 1
     fi
-    execute_command "git pull" && execute_command "git push origin main"
+    # A clone tracks origin's main; a repository whose origin was added by hand may track nothing yet.
+    if git rev-parse --abbrev-ref --symbolic-full-name '@{u}' >/dev/null 2>&1; then
+        execute_command "git pull" || return 1
+    fi
+    execute_command "git push -u origin main"
 }
 
 if [ "${use_prok}" = "y" ] && [ "${prok_connected}" != "y" ]; then
